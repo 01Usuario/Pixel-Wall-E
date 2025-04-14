@@ -29,6 +29,24 @@ public class FileManager : MonoBehaviour
 
     public void Execute(){
         DataManager.Instance.codeText = content.text;
+
+        string code = content.text;
+
+        try {
+            // 1. Tokenizar el código
+            Lexer lexer = new Lexer(code);
+
+            List<Token> tokens = lexer.Tokenize();
+            foreach (Token token in tokens) {
+            Debug.Log("Token: "+token.Value.ToString()+ "  |  Tipo: "+token.Type.ToString());
+        }
+            
+        } catch (System.Exception e) {
+            Debug.LogError($"Error: {e.Message}");
+            // Mostrar error en la UI (ej: panel de errores)
+        }
+        
+
         SceneManager.LoadScene(1);
     }
 
