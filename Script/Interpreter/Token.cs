@@ -4,8 +4,8 @@ using UnityEngine;
 
 public enum TokenType
 {
-    KeyWord,Identifier,Label,Number,StringLiteral,Punctuation,WhiteSpace,Operator
-    ,Function,Boolean
+    Keyword,Identifier,Label,Number,StringLiteral,Punctuation,WhiteSpace,Operator
+    ,Function
 }
 
 public class Token 

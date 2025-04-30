@@ -13,7 +13,7 @@ public class FileManager : MonoBehaviour
         try {
             string path = GetFileBrowserPath(true);
             if (!string.IsNullOrEmpty(path)) {
-                content.text = File.ReadAllText(path);
+                content.text = File.ReadAllText(path)+"  ";
             }
         } catch (System.Exception e) {
             Debug.LogError($"Error al cargar: {e.Message}");
@@ -24,7 +24,7 @@ public class FileManager : MonoBehaviour
     {
         string path = GetFileBrowserPath(false);
         if(!string.IsNullOrEmpty(path))
-        File.WriteAllText(path, content.text);
+        File.WriteAllText(path, content.text+" ");
     }
 
     public void Execute(){
