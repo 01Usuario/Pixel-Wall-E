@@ -4,7 +4,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
-using UnityEngine.SceneManagement;
 
 public class FileManager : MonoBehaviour
 {
@@ -28,7 +27,6 @@ public class FileManager : MonoBehaviour
     }
 
     public void Execute(){
-        DataManager.Instance.codeText = content.text;
 
         string code = content.text;
 
@@ -46,8 +44,6 @@ public class FileManager : MonoBehaviour
             // Mostrar error en la UI (ej: panel de errores)
         }
         
-
-        SceneManager.LoadScene(1);
     }
 
      private string GetFileBrowserPath(bool isLoad) {

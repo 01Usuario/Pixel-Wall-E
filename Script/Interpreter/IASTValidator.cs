@@ -12,7 +12,7 @@ public class SemanticContext
     public HashSet<string> Labels { get; } = new HashSet<string>();
     public List<string> Errors { get; } = new List<string>();
     public string CurrentBrushColor { get; set; }
-    public Dictionary<string, System.Type> VariableTypes { get; } = new Dictionary<string, System.Type>();
+   // public Dictionary<string, System.Type> VariableTypes { get; } = new Dictionary<string, System.Type>();
 
     public void AddError(string message) => Errors.Add(message);
 }
@@ -163,23 +163,22 @@ public class FillValidator : IASTValidator<FillNode>
 public class FunctionValidator : IASTValidator<FunctionNode>
 {
     // Lista de funciones válidas y sus especificaciones
-    private readonly Dictionary<string, FunctionSpec> _validFunctions = new Dictionary<string, FunctionSpec>
+    private readonly Dictionary<string, FunctionInspector> _validFunctions = new Dictionary<string, FunctionInspector>
     {
         // Funciones sin parámetros
-        { "GetActualX", new FunctionSpec(0, new List<System.Type>()) },
-        { "GetActualY", new FunctionSpec(0, new List<System.Type>()) },
-        { "GetCanvasSize", new FunctionSpec(0, new List<System.Type>()) },
+        { "GetActualX", new FunctionInspector(0, new List<System.Type>()) },
+        { "GetActualY", new FunctionInspector(0, new List<System.Type>()) },
+        { "GetCanvasSize", new FunctionInspector(0, new List<System.Type>()) },
 
         // Funciones con parámetros
-        { "GetColorCount", new FunctionSpec(5, new List<System.Type> { typeof(string), typeof(int), typeof(int), typeof(int), typeof(int) }) },
-        { "IsBrushColor", new FunctionSpec(1, new List<System.Type> { typeof(string) }) },
-        { "IsBrushSize", new FunctionSpec(1, new List<System.Type> { typeof(int) }) },
-        { "IsCanvasColor", new FunctionSpec(3, new List<System.Type> { typeof(string), typeof(int), typeof(int) }) }
+        { "GetColorCount", new FunctionInspector(5, new List<System.Type> { typeof(string), typeof(int), typeof(int), typeof(int), typeof(int) }) },
+        { "IsBrushColor", new FunctionInspector(1, new List<System.Type> { typeof(string) }) },
+        { "IsBrushSize", new FunctionInspector(1, new List<System.Type> { typeof(int) }) },
+        { "IsCanvasColor", new FunctionInspector(3, new List<System.Type> { typeof(string), typeof(int), typeof(int) }) }
     };
 
     public void Validate(FunctionNode node, SemanticContext context)
     {
-        // Verificar si la función existe
         if (!_validFunctions.ContainsKey(node.Name))
         {
             context.AddError($"Función no reconocida: '{node.Name}'.");
@@ -244,12 +243,12 @@ public class FunctionValidator : IASTValidator<FunctionNode>
     }
 
     // Clase interna para especificaciones de funciones
-    private class FunctionSpec
+    private class FunctionInspector
     {
         public int ExpectedParamCount { get; }
         public List<System.Type> ExpectedParamTypes { get; }
 
-        public FunctionSpec(int count, List<System.Type> types)
+        public FunctionInspector(int count, List<System.Type> types)
         {
             ExpectedParamCount = count;
             ExpectedParamTypes = types;

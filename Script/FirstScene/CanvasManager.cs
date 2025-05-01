@@ -8,7 +8,6 @@ using UnityEngine.SceneManagement;
 public class CanvasManager : MonoBehaviour
 {
     public TMP_InputField sizeInput;
-
     public Button resizeButton;
 
     public Button confirmButton;
@@ -19,7 +18,7 @@ public class CanvasManager : MonoBehaviour
     public TMP_Text errorText;
 
     void Start(){
-        InitializeCanvas(DataManager.Instance.canvasSize);
+        InitializeCanvas(4);
         sizeInput.interactable=false;
         confirmButton.interactable=false;
         confirmButton.onClick.AddListener(OnConfirmResize);
@@ -60,15 +59,13 @@ public class CanvasManager : MonoBehaviour
         }
     }
 
-    public void GoBack(){
-        SceneManager.LoadScene(0);
-    }
-
     private void PaintTestPixel() {
         SetPixel(0, 0, Color.red);
+        SetPixel(canvasSize-1, canvasSize-1, Color.blue);
+
     }
 
-    // Método para pintar un píxel (ya implementado)
+    // Método para pintar un píxel
     public void SetPixel(int x, int y, Color color) {
         if (x < 0 || y < 0 || x >= canvasSize || y >= canvasSize) return;
         canvasTexture.SetPixel(x, y, color);
