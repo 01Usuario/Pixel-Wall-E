@@ -8,11 +8,13 @@ using System.IO;
 public class FileManager : MonoBehaviour
 {
     public TMP_InputField content;
+    public CanvasManager canvasManager;
+    public TMP_Text errorText;
    public void LoadFile() {
         try {
             string path = GetFileBrowserPath(true);
             if (!string.IsNullOrEmpty(path)) {
-                content.text = File.ReadAllText(path)+"  ";
+                content.text = File.ReadAllText(path)+"";
             }
         } catch (System.Exception e) {
             Debug.LogError($"Error al cargar: {e.Message}");
@@ -33,10 +35,11 @@ public class FileManager : MonoBehaviour
         try {
             // 1. Tokenizar el código
             Lexer lexer = new Lexer(code);
-
             List<Token> tokens = lexer.Tokenize();
+            Parser parser = new Parser();
+           
             foreach (Token token in tokens) {
-            Debug.Log("Token: "+token.Value.ToString()+ "  |  Tipo: "+token.Type.ToString());
+            Debug.Log("Token: "+token.Value.ToString()+ "    Tipo: "+token.Type.ToString()+"      Linea: "+token.Line);
         }
             
         } catch (System.Exception e) {

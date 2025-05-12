@@ -13,7 +13,7 @@ public class ProgramNode : ASTNode
 }
 public class VariableNode : ASTNode
 {
-    public string Variable;
+    public string Variable{get;}
     public VariableNode(string variable)
     {
         Variable = variable;
@@ -74,61 +74,29 @@ public class SizeNode : ASTNode
         Size = size;
     }
 }
-public class DrawLineNode : ASTNode
+public class DrawCommandNode : ASTNode
 {
-    public int DirX;
-    public int DirY;
-    public int Distance;
-    public DrawLineNode(int dirX, int dirY, int distance)
-    {
-        DirX = dirX;
-        DirY = dirY;
-        Distance= distance;
-    }
+     public string Name{get;}
+    public List<ASTNode> Parameters;
 
-}
-
-public class DrawCircleNode : ASTNode
-{
-    public int DirX;
-    public int DirY;
-    public int Radius;
-    public DrawCircleNode(int dirX, int dirY, int radius)
-    {
-        DirX = dirX;
-        DirY = dirY;
-        Radius = radius;
+    public DrawCommandNode(string name, List<ASTNode> parameters) {
+        Name = name;
+        Parameters = parameters;
     }
 }
 
-public class DrawRectangleNode : ASTNode
-{
-    public int DirX;
-    public int DirY;
-    public int Distance;
-    public int Width;
-    public int Height;
-    public DrawRectangleNode(int dirX, int dirY, int width, int height,int distance)
-    {
-        DirX = dirX;
-        DirY = dirY;
-        Width = width;
-        Height = height;
-        Distance = distance;
-    }
-}
-public class FillNode : ASTNode{
-
+public class FillNode : ASTNode {
+   public FillNode(){}
 }
 
 public class AssignNode : ASTNode
 {
     public string Variable;
-    public ASTNode Expresion;
+    public ASTNode Expression;
     public AssignNode(string variable, ASTNode expresion)
     {
         Variable = variable;
-        Expresion = expresion;
+        Expression = expresion;
     }
 }
 public class BinaryOpNode : ASTNode {
@@ -164,13 +132,11 @@ public class GoToNode : ASTNode {
     }
 }
 public class FunctionNode : ASTNode {
-    public string Name;
+    public string Name{get;}
     public List<ASTNode> Parameters;
-    public ASTNode Body;
 
-    public FunctionNode(string name, List<ASTNode> parameters, ASTNode body) {
+    public FunctionNode(string name, List<ASTNode> parameters) {
         Name = name;
         Parameters = parameters;
-        Body = body;
     }
 }

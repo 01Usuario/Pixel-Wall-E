@@ -6,15 +6,17 @@ public interface IASTValidator <T> where T : ASTNode
 {
     void Validate(T node, SemanticContext context);
 }
-public class SemanticContext 
-{
+public class SemanticContext {
     public HashSet<string> Variables { get; } = new HashSet<string>();
+    public Dictionary<string, System.Type> VariableTypes { get; } = new Dictionary<string, System.Type>();
     public HashSet<string> Labels { get; } = new HashSet<string>();
     public List<string> Errors { get; } = new List<string>();
     public string CurrentBrushColor { get; set; }
-   // public Dictionary<string, System.Type> VariableTypes { get; } = new Dictionary<string, System.Type>();
+    public bool HasSpawn { get; set; } = false;
+    public int CanvasSize { get; set; } 
 
     public void AddError(string message) => Errors.Add(message);
+    public void AddWarning(string message) => Errors.Add($"[Advertencia] {message}");
 }
 
  public class FirstSpawnNodeValidator : IASTValidator<ProgramNode>
@@ -25,6 +27,11 @@ public class SemanticContext
         {
             context.AddError("El codigo no inicia con la instruccion Spawn");  
         }
+        else if (context.HasSpawn) 
+        {
+            context.AddError("Spawn solo puede usarse una vez.");
+        }
+        context.HasSpawn = true;
     }
  }
 public class SpawnValidator : IASTValidator<SpawnNode> 
@@ -85,13 +92,13 @@ public class SizeValidator : IASTValidator<SizeNode>
             context.AddError($"El tamaño ({node.Size}) es mayor que el tamaño del canvas ({CanvasSize}).");
         }
         if(node.Size%2==0){
-            context.AddError($"El tamaño ({node.Size}) debe ser impar.");
-           
+            int adjustedSize = node.Size - 1;
+            context.AddWarning($"Tamaño ajustado a {adjustedSize}. Use números impares.");
         }
     }
 }
 
-    public class DrawLineValidator : IASTValidator<DrawLineNode> 
+    /* public class DrawLineValidator : IASTValidator<DrawLineNode> 
     {
         public void Validate(DrawLineNode node, SemanticContext context) 
         {
@@ -146,10 +153,13 @@ public class DrawRectangleValidator : IASTValidator<DrawRectangleNode>
         if (node.Distance <= 0) 
         {
             context.AddError($"Distancia inválida en DrawRectangle: {node.Distance}. Debe ser mayor que cero.");
-        }
-    }
+        } 
+    
+     }
 }
 
+    */
+   
 public class FillValidator : IASTValidator<FillNode> 
 {
     public void Validate(FillNode node, SemanticContext context) 
@@ -221,9 +231,11 @@ public class FunctionValidator : IASTValidator<FunctionNode>
                     $"Se recibió: {param.GetType().Name}."
                 );
             }
+            if (expectedType == typeof(string) && !(param is StringLiteralNode || param is VariableNode)) {
+                context.AddError($"Parámetro {i + 1} debe ser un string literal o variable.");
+}
         }
 
-        // Validar variables declaradas (ej: "Red" no es una variable)
         if (node.Name == "IsCanvasColor" && node.Parameters[0] is StringLiteralNode colorVar)
         {
             if (!context.Variables.Contains(colorVar.Value))

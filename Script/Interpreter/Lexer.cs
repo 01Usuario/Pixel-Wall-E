@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.Analytics;
 
@@ -17,23 +18,31 @@ public class Lexer : MonoBehaviour
    }
      private readonly HashSet<string> KeywordsList = new HashSet<string>
     {
-        "Spawn","Color","Size","DrawLine","DrawCircle","DrawRectangle","Fill",
-        "GoTo",
+        "Spawn","Color","Size","GoTo","Fill"
     };
     private readonly HashSet<char> PunctuationList = new HashSet<char>
     {
         '(',')',',','[',']'
     };
-    private readonly HashSet<char> simpleOperators = new HashSet<char> {
+    private readonly HashSet<string> ArithmeticOperators = new HashSet<string> {
 
-        '+', '-', '*' ,'/', '%','<','>','='
+        "+" ,"-", "*" ,"/", "%","**"
     };
-    private readonly HashSet<string> multiCharOperators = new HashSet<string> { 
-    "++", "--", "&&", "||", "==", ">=", "<=", "**", "%", "<-"
+    private readonly HashSet<string> BooleanOperators = new HashSet<string> {
+
+        "&&", "||", "==", ">=", "<=","<",">","="    
     };
+    private readonly HashSet<string> AssignOperators = new HashSet<string> {
+        "<-"
+    };
+
     private readonly HashSet<string> FunctionsList = new HashSet<string> {
     "GetActualX", "GetActualY", "GetCanvasSize", "GetColorCount", "IsBrushColor", "IsBrushSize", "IsCanvasColor"
     };
+    private readonly HashSet<string> DrawingCommands = new HashSet<string> {
+    "DrawLine", "DrawCircle", "DrawRectangle"
+    };  
+
     private readonly HashSet<string> identifiersDeclared = new HashSet<string> ();
     private readonly HashSet<string> labelDeclared = new HashSet<string> ();
 
@@ -52,8 +61,10 @@ public class Lexer : MonoBehaviour
         }
         
         char currentChar = source[position];
+        
+        
         if(char.IsLetter(currentChar)){
-            tokens.Add(IdentifierOrKeyword());
+            tokens.Add(ClassifyToken());
         }
         else if(char.IsDigit(currentChar)){
             tokens.Add(Number());
@@ -70,15 +81,15 @@ public class Lexer : MonoBehaviour
         
         else
         throw new System.Exception($"Token inesperado: {currentChar} en la linea {line}, posicion {position}");
-
-        // Verificar si hay corchetes desbalanceadas.
-        if (openCorchetes != 0 && position==source.Length-1)
-            throw new System.Exception($"Corchetes desbalanceadas en la linea {line}, posicion {position}");
-        // Verificar si hay parentesis desbalanceados.
-        if (openParentheses != 0&&position==source.Length-1)
-            throw new System.Exception($"Parentesis desbalanceados en la linea {line}, posicion {position}");
-
+        
     }
+     
+    if (openCorchetes != 0)
+            throw new System.Exception($"Corchetes desbalanceados");
+        // Verificar si hay parentesis desbalanceados.
+        if (openParentheses != 0)
+            throw new System.Exception($"Parentesis desbalanceados");
+
     return tokens;
 
 }
@@ -88,22 +99,30 @@ public class Lexer : MonoBehaviour
         while (position < source.Length && char.IsWhiteSpace(source[position]))
         {
             if (source[position] == '\n')
-            {
+            {   
                 line++;
+                if(source[position+1]=='-'){
+                    throw new System.Exception($"Identificador no valido: {source[position]} en la linea {line}, posicion {position}");
+                }
+                if (char.IsDigit(source[position+1])) {
+                    throw new System.Exception($"Identificador no puede comenzar con número (línea {line})");
+                }
             }
-           
             position++;
         }
     }
 
     // Metodo que identifica si una secuencia de caracteres es un identificador o una palabra clave.
-    private Token IdentifierOrKeyword()
+    private Token ClassifyToken() 
     {
         // Guardar la posicion inicial.
         int startPos = position;
         if(source[position]=='-'){
             throw new System.Exception($"Identificador no valido: {source[position]} en la linea {line}, posicion {position}");
         }
+        if (char.IsDigit(source[startPos])) {
+        throw new System.Exception($"Identificador no puede comenzar con número (línea {line})");
+    }
         // Mientras no se haya alcanzado el final del codigo fuente y el caracter actual sea una letra, digito o guion
         while (position < source.Length &&( char.IsLetterOrDigit(source[position]) || source[position] == '-'))
         {
@@ -115,22 +134,25 @@ public class Lexer : MonoBehaviour
 
 
             if (KeywordsList.Contains(value))
-                return new Token(TokenType.Keyword, value);
+                return new Token(TokenType.Keyword, value,line);
             else if (FunctionsList.Contains(value))
-                return new Token(TokenType.Function, value);
+                return new Token(TokenType.Function, value,line);
         
              if(position + 2 < source.Length &&source[position+1]=='<'&& source[position+2]=='-'&&!labelDeclared.Contains(value)){
                 identifiersDeclared.Add(value);
-                 return new Token(TokenType.Identifier, value);
+                 return new Token(TokenType.Identifier, value,line);
+            }
+            else if(DrawingCommands.Contains(value)){
+                return new Token(TokenType.DrawingCommand, value,line);
             }
             else {
                 if(!identifiersDeclared.Contains(value))
                 {
-                    return new Token(TokenType.Label, value);
+                    return new Token(TokenType.Label, value,line);
                 }
                 else{
                     labelDeclared.Add(value);
-                    return new Token(TokenType.Identifier, value);
+                    return new Token(TokenType.Identifier, value,line);
                 }
 
             }
@@ -152,7 +174,7 @@ public class Lexer : MonoBehaviour
         // Obtener el valor del numero.
         string value = source.Substring(startPos, position - startPos);
         // Devolver un token de tipo numero.
-        return new Token(TokenType.Number, value);
+        return new Token(TokenType.Number, value,line);
     }
 
     // Metodo que tokeniza una cadena de texto.
@@ -175,7 +197,7 @@ public class Lexer : MonoBehaviour
         // Incrementar la posicion y la columna para omitir la comilla de cierre.
         position++;
         // Devolver un token de tipo cadena.
-        return new Token(TokenType.StringLiteral, value);
+        return new Token(TokenType.StringLiteral, value,line);
     }
 
     // Metodo que tokeniza un operador.
@@ -184,25 +206,47 @@ public class Lexer : MonoBehaviour
         // Obtener un posible operador de dos caracteres.
         string twoCharOp = position + 1 < source.Length ? source.Substring(position, 2) : null;
         // Si el operador de dos caracteres es valido, devolver un token de tipo operador.
-        if (twoCharOp != null && multiCharOperators.Contains(twoCharOp))
+        if (twoCharOp != null)
         {
-            position += 2;
-            return new Token(TokenType.Operator, twoCharOp);
-        }
+            if(AssignOperators.Contains(twoCharOp))
+            {
+                position += 2;
+                return new Token(TokenType.AssignnmentOperator, twoCharOp,line);
+            }
+            else if(ArithmeticOperators.Contains(twoCharOp))
+            {
+                position += 2;
+                return new Token(TokenType.ArithmeticOperator, twoCharOp,line);
+            }
+            else if(BooleanOperators.Contains(twoCharOp))
+            {
+                position += 2;
+                return new Token(TokenType.BooleanOperator, twoCharOp,line);
+            }
+            else
+            {
+                char simpleOperator = source[position];
+                if(ArithmeticOperators.Contains(simpleOperator.ToString())){
+                    position += 1;
+                    return new Token(TokenType.ArithmeticOperator, simpleOperator.ToString(),line);
+                }
+                else if(BooleanOperators.Contains(simpleOperator.ToString())){
+                    position += 1;
+                    return new Token(TokenType.BooleanOperator, simpleOperator.ToString(),line);
+                }
 
-        // Obtener el caracter actual.
-        char currentChar = source[position];
-        // Incrementar la posicion y la columna.
-        position++;
-        // Devolver un token de tipo operador.
-        return new Token(TokenType.Operator, currentChar.ToString());
+            }
+        }
+        throw new System.Exception($"Operador no reconocido en la linea {line}, posicion {position}");
+
+        
     }
 
     // Metodo que verifica si un caracter es un operador.
     private bool IsOperator(char character)
     {
         // Verificar si el caracter esta en la lista de operadores.
-        return simpleOperators.Contains(character);
+        return ArithmeticOperators.Contains(character.ToString())|| BooleanOperators.Contains(character.ToString());
     }
 
     // Metodo que tokeniza un caracter especial.
@@ -220,7 +264,7 @@ public class Lexer : MonoBehaviour
             openCorchetes++;
         else if (currentChar == ']')
             openCorchetes--;
-        return new Token(TokenType.Punctuation, currentChar.ToString());
+        return new Token(TokenType.Punctuation, currentChar.ToString(),line);
     }
 
    
