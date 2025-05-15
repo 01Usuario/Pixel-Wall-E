@@ -1,12 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using System;
-using Unity.VisualScripting.Antlr3.Runtime;
-using System.Runtime.CompilerServices;
-using System.Linq.Expressions;
-using System.Runtime.InteropServices.WindowsRuntime;
+
 
 public class Parser : MonoBehaviour
 {
@@ -33,24 +28,62 @@ public class Parser : MonoBehaviour
 
         return program;
     }
-     private ASTNode ParseInstruction()
+    private ASTNode ParseInstruction()
+{
+    Token token = CurrentToken();
+    
+    // Primero verificamos el tipo de token
+    switch (token.Type)
     {
-        Token token = CurrentToken();
-        switch (token.Value)
+        case TokenType.Keyword:
+            return ParseKeywordInstruction();
+            
+        case TokenType.DrawingCommand:
+            return ParseDrawCommand();
+            
+        case TokenType.Function:
+            return ParseFunction();
+            
+        case TokenType.Identifier:
+            // Verificar si es una asignación (variable <- expresión)
+            if (PeekNextToken()?.Type == TokenType.AssignmentOperator)
+                return ParseAssign();
+            break;
+                
+        case TokenType.Label:
+            return ParseLabel();
+    }
+    
+    throw new Exception($"Instrucción no reconocida: {token.Value} (línea {token.Line})");
+}
+
+    private ASTNode ParseKeywordInstruction()
+    {
+        switch (CurrentToken().Value)
         {
             case "Spawn":
                 return ParseSpawn();
             case "Color":
                 return ParseColor();
             case "Size":
-                return ParseSize();                   
+                return ParseSize();
+            case "Fill":
+                return ParseFill();
+            case "GoTo":
+                return ParseGoTo();
+            default:
+                throw new Exception($"Palabra clave no reconocida: {CurrentToken().Value} (línea {CurrentToken().Line})");
         }
-    return null;
     }
-    
-    private Token CurrentToken(){
-        return tokens[currentTokenIndex];
+
+    private Token PeekNextToken()
+    {
+        return currentTokenIndex + 1 < tokens.Count ? tokens[currentTokenIndex + 1] : null;
     }
+        
+        private Token CurrentToken(){
+            return tokens[currentTokenIndex];
+        }
 
     private void Expect(TokenType type, string value) 
     {
@@ -100,8 +133,9 @@ public class Parser : MonoBehaviour
             return new VariableNode(variableName);
         }
     }    
-    private ASTNode ParseExpression()
+    private ASTNode ParsePrimary()
     {
+        
         if (CurrentToken().Type == TokenType.Identifier)
         {
             return ParseVariable();
@@ -116,7 +150,7 @@ public class Parser : MonoBehaviour
         }
         else if(CurrentToken().Value=="("){
             ConsumeToken();
-            ASTNode expression = ParseExpression();
+            ASTNode expression = ParsePrimary();
             Expect(TokenType.Punctuation, ")");
             return expression;
         }
@@ -143,16 +177,6 @@ public class Parser : MonoBehaviour
 
         string colorValue = CurrentToken().Value;
         ConsumeToken(); 
-
-        var validColors = new HashSet<string> { 
-            "Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Black", "White", "Transparent" 
-        };
-
-        if (!validColors.Contains(colorValue))
-        {
-            throw new Exception($"Error en línea {CurrentToken().Line}: Color inválido '{colorValue}'");
-        }
-
         Expect(TokenType.Punctuation, ")");
 
         return new ColorNode(colorValue);
@@ -193,7 +217,7 @@ public class Parser : MonoBehaviour
             List<ASTNode> parameters = new List<ASTNode>();
 
             while(CurrentToken().Value!=")"){
-                parameters.Add(ParseExpression());
+                parameters.Add(ParsePrimary());
                 if (CurrentToken().Value != ")")
                 {
                     Expect(TokenType.Punctuation, ",");
@@ -226,7 +250,7 @@ public class Parser : MonoBehaviour
             List<ASTNode> parameters = new List<ASTNode>();
 
             while(CurrentToken().Value!=")"){
-                parameters.Add(ParseExpression());
+                parameters.Add(ParsePrimary());
                 if (CurrentToken().Value != ")")
                 {
                     Expect(TokenType.Punctuation, ",");
@@ -235,7 +259,82 @@ public class Parser : MonoBehaviour
            Expect(TokenType.Punctuation, ")");
             return new FunctionNode(functionName,parameters);
         }
+        
+    } 
+    private bool IsOperator(Token token)
+    {
+        return token.Type == TokenType.ArithmeticOperator 
+            || token.Type == TokenType.BooleanOperator;
     }
+    private int GetOperatorPriorityLevel(string op)
+    {
+    return op switch
+        {
+            "+" or "-" => 1,
+            "*" or "/" or "%" => 2,
+            "**" => 3,
+            "&&" => 4,
+            "||" => 5,
+            "==" or "!=" or ">" or "<" or ">=" or "<=" => 6,
+            _ => 0,
+        };
+    }
+    private ASTNode ParseExpression(int minPrecedence = 0)
+{
+    ASTNode left = ParsePrimary();
+
+    while (true)
+    {
+        Token opToken = CurrentToken();
+        if (!IsOperator(opToken)) 
+            break;
+
+        int precedence = GetOperatorPriorityLevel(opToken.Value);
+        if (precedence < minPrecedence)
+            break;
+
+        ConsumeToken(); 
+        ASTNode right = ParseExpression(precedence);
+        if(opToken.Type==TokenType.BooleanOperator)
+        {
+            left= new BooleanOpNode(opToken.Value,left,right);
+        }
+        else{
+           left= new BinaryOpNode(opToken.Value, left, right);
+
+        }
+    }
+
+    return left;
+}
+private AssignNode ParseAssign()
+{
+    string variable = CurrentToken().Value;
+    ConsumeToken();
+    Expect(TokenType.AssignmentOperator, "<-");
+    ASTNode expr = ParseExpression(); 
+    return new AssignNode(variable, expr);
+}
+private GoToNode ParseGoTo()
+{
+    Expect(TokenType.Keyword, "GoTo");
+    
+    Expect(TokenType.Punctuation, "(");
+    
+    if (CurrentToken().Type != TokenType.Label)
+    {
+        throw new Exception($"Se esperaba una etiqueta en línea {CurrentToken().Line}");
+    }
+    string label = CurrentToken().Value; 
+    ConsumeToken();                      
+    
+    Expect(TokenType.Punctuation, ",");
+    ASTNode condition = ParseExpression();
+    Expect(TokenType.Punctuation, ")");
+    
+    return new GoToNode(label, condition);
+}
+
    
 }
 

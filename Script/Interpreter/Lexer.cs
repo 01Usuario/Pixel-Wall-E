@@ -211,7 +211,7 @@ public class Lexer : MonoBehaviour
             if(AssignOperators.Contains(twoCharOp))
             {
                 position += 2;
-                return new Token(TokenType.AssignnmentOperator, twoCharOp,line);
+                return new Token(TokenType.AssignmentOperator, twoCharOp,line);
             }
             else if(ArithmeticOperators.Contains(twoCharOp))
             {

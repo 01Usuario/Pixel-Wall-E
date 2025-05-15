@@ -5,7 +5,7 @@ using UnityEngine;
 public enum TokenType
 {
     Keyword,Identifier,Label,Number,StringLiteral,Punctuation,WhiteSpace,ArithmeticOperator,
-    BooleanOperator,AssignnmentOperator,Function,DrawingCommand,
+    BooleanOperator,AssignmentOperator,Function,DrawingCommand,
 }
 
 public class Token 
