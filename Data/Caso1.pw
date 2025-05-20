@@ -1,7 +1,0 @@
-Spawn(10, 20)
-Color("Red")
-Size(5)
-Fill()
-
-x <- 42
-y <- x + 10 

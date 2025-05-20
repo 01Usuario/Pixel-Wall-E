@@ -32,28 +32,34 @@ public class FileManager : MonoBehaviour
 
         string code = content.text;
 
-        try {
+        try
+        {
             Lexer lexer = new Lexer(code);
             List<Token> tokens = lexer.Tokenize();
+
+              foreach (Token token in tokens) {
+                 Debug.Log("Token: " + token.Value.ToString() + "    Tipo: " + token.Type.ToString() + "      Linea: " + token.Line);
+             } 
+            Parser parser = new Parser(tokens);
+            ASTNode program = parser.ParseProgram(tokens); 
+            errorText.text = "Análisis exitoso";
+            errorText.color = Color.green;
+        
             
-            foreach (Token token in tokens) {
-            Debug.Log("Token: "+token.Value.ToString()+ "    Tipo: "+token.Type.ToString()+"      Linea: "+token.Line);
-            Parser parser = new Parser();
-            ASTNode program = parser.ParseProgram(tokens);
         }
-            
-        } 
-            catch (System.Exception e) {
-            Debug.LogError($"❌ Error: {e.Message}");
-            errorText.text = $"Error: {e.Message}";
-            errorText.color = Color.red;
+        catch (System.Exception e)
+        {
+            Debug.LogError($" Error: {e.Message}");
+            if (errorText != null)
+            {
+                errorText.text = $"Error: {e.Message}";
+                errorText.color = Color.red;
+            }
         }
         
-        Debug.Log("✅ Análisis completado correctamente");
         
     }
     
-
      private string GetFileBrowserPath(bool isLoad) {
         #if UNITY_EDITOR
             if (isLoad) {

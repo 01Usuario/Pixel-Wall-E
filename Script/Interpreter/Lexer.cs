@@ -4,7 +4,7 @@ using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.Analytics;
 
-public class Lexer : MonoBehaviour
+public class Lexer 
 {
    private readonly string source;
    private int position;
@@ -30,7 +30,7 @@ public class Lexer : MonoBehaviour
     };
     private readonly HashSet<string> BooleanOperators = new HashSet<string> {
 
-        "&&", "||", "==", ">=", "<=","<",">","="    
+        "&&", "||", "==", ">=", "<=","<",">","=","&",   
     };
     private readonly HashSet<string> AssignOperators = new HashSet<string> {
         "<-"
@@ -124,7 +124,7 @@ public class Lexer : MonoBehaviour
         throw new System.Exception($"Identificador no puede comenzar con número (línea {line})");
     }
         // Mientras no se haya alcanzado el final del codigo fuente y el caracter actual sea una letra, digito o guion
-        while (position < source.Length &&( char.IsLetterOrDigit(source[position]) || source[position] == '-'))
+        while (position < source.Length &&( char.IsLetterOrDigit(source[position]) || source[position] == '_'))
         {
             position++;
         }
@@ -192,20 +192,15 @@ public class Lexer : MonoBehaviour
         // Si se alcanza el final del codigo fuente sin encontrar una comilla de cierre, lanzar una excepcion.
         if (position >= source.Length)
             throw new System.Exception ($"Literal de cadena sin cerrar en la linea {line}, posicion {position}");
-        // Obtener el valor de la cadena.
         string value = source.Substring(startPos + 1, position - startPos - 1);
-        // Incrementar la posicion y la columna para omitir la comilla de cierre.
         position++;
-        // Devolver un token de tipo cadena.
         return new Token(TokenType.StringLiteral, value,line);
     }
 
     // Metodo que tokeniza un operador.
     private Token Operator()
     {
-        // Obtener un posible operador de dos caracteres.
         string twoCharOp = position + 1 < source.Length ? source.Substring(position, 2) : null;
-        // Si el operador de dos caracteres es valido, devolver un token de tipo operador.
         if (twoCharOp != null)
         {
             if(AssignOperators.Contains(twoCharOp))
