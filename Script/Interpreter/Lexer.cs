@@ -30,7 +30,7 @@ public class Lexer
     };
     private readonly HashSet<string> BooleanOperators = new HashSet<string> {
 
-        "&&", "||", "==", ">=", "<=","<",">","=","&",   
+        "&&", "||", "==", ">=", "<=","<",">","=","&", "|"  
     };
     private readonly HashSet<string> AssignOperators = new HashSet<string> {
         "<-"

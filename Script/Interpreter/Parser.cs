@@ -84,9 +84,14 @@ public class Parser
 
     private void Expect(TokenType type, string value) 
     {
-        if (CurrentToken().Type != type || CurrentToken().Value != value) {
-            throw new Exception($"Se esperaba {value} en línea {CurrentToken().Line}, Se obtuvo {CurrentToken().Value} en la posivion {currentTokenIndex}");
-            }
+        if (currentTokenIndex >= tokens.Count)
+            throw new Exception($"Se esperaba {value} pero no hay más tokens.");
+
+        Token current = CurrentToken();
+        if (current.Type != type || current.Value != value)
+        {
+            throw new Exception($"Se esperaba {value} en línea {current.Line}, se obtuvo {current.Value}");
+        }
         ConsumeToken();
     }
     private void ConsumeToken() {
@@ -138,8 +143,14 @@ public class Parser
         ConsumeToken();
         return new LabelNode(lebelName);
     }  
-    private ASTNode ParsePrimary()
+   private ASTNode ParsePrimary()
     {
+        if (currentTokenIndex >= tokens.Count)
+            throw new Exception("Expresión incompleta.");
+
+        Token token = CurrentToken();
+
+        
 
         if (CurrentToken().Type == TokenType.Identifier || CurrentToken().Type==TokenType.StringLiteral)
         {
@@ -158,12 +169,14 @@ public class Parser
         {
             return ParseFunction();
         }
-        else if (CurrentToken().Value == "(")
+        else if (token.Value == "(")
         {
             ConsumeToken();
-            ASTNode expression = ParseExpression();
-            Expect(TokenType.Punctuation, ")");
-            return expression;
+            ASTNode expr = ParseExpression();
+            if (currentTokenIndex >= tokens.Count || CurrentToken().Value != ")")
+                throw new Exception($"Paréntesis no cerrado en línea {token.Line}.");
+            ConsumeToken();
+            return expr;
         }
         else
         {
@@ -171,34 +184,26 @@ public class Parser
         }
 
     }
-    private ASTNode ParseExpression(int minPrecedence = 0)
+   private ASTNode ParseExpression(int minPrecedence = 0)
+{
+    ASTNode left = ParsePrimary();
+
+    while (currentTokenIndex < tokens.Count)
     {
-        ASTNode left = ParsePrimary();
+        Token opToken = CurrentToken();
+        
+        if (!IsOperator(opToken)) break;
 
-        while (true)
-        {
-            Token opToken = CurrentToken();
-            if (!IsOperator(opToken)) 
-                break;
+        int precedence = GetOperatorPriorityLevel(opToken.Value);
+        if (precedence < minPrecedence) break;
 
-            int precedence = GetOperatorPriorityLevel(opToken.Value);
-            if (precedence < minPrecedence)
-                break;
-
-            ConsumeToken(); 
-            ASTNode right = ParseExpression(precedence);
-            if(opToken.Type==TokenType.BooleanOperator)
-            {
-                left= new BooleanOpNode(opToken.Value,left,right);
-            }
-            else{
-            left= new BinaryOpNode(opToken.Value, left, right);
-
-            }
-        }
-
-        return left;
+        ConsumeToken();
+        ASTNode right = ParseExpression(precedence);
+        left = new BinaryOpNode(opToken.Value, left, right);
     }
+
+    return left;
+}
     private bool IsOperator(Token token)
     {
         return token.Type == TokenType.ArithmeticOperator 
@@ -218,13 +223,32 @@ public class Parser
         };
     }
     private AssignNode ParseAssign()
+{
+    if (currentTokenIndex >= tokens.Count)
+        throw new Exception("Asignación incompleta.");
+
+    string variable = CurrentToken().Value;
+    ConsumeToken();
+
+    // Verificar operador '<-'
+    if (currentTokenIndex >= tokens.Count || CurrentToken().Value != "<-")
+        throw new Exception($"Se esperaba '<-' después de '{variable}'.");
+
+    ConsumeToken();
+
+    ASTNode expr = ParseExpression();
+
+    // Si hay tokens restantes que no son parte de otra instrucción, error
+ /*    if (currentTokenIndex < tokens.Count && 
+        CurrentToken().Type != TokenType.Keyword && 
+        CurrentToken().Type != TokenType.DrawingCommand && 
+        CurrentToken().Type != TokenType.Identifier)
     {
-        string variable = CurrentToken().Value;
-        ConsumeToken();
-        Expect(TokenType.AssignmentOperator, "<-");
-        ASTNode expr = ParseExpression(); 
-        return new AssignNode(variable, expr);
-    }
+        throw new Exception($"Carácter inesperado: '{CurrentToken().Value}'");
+    } */
+
+    return new AssignNode(variable, expr);
+} 
     private ColorNode ParseColor()
     {
         if (CurrentToken().Value != "Color" || CurrentToken().Type != TokenType.Keyword)
