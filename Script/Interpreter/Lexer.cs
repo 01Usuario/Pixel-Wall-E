@@ -60,7 +60,6 @@ public class Lexer
             char currentChar = source[position];
                 if (source[position] == '-')
                 {
-                    Debug.Log("ME encontre un menos salvaje");
                     tokens.Add(ProcessMinus());
                     continue;
                 }
@@ -75,7 +74,6 @@ public class Lexer
                 tokens.Add(String());
             }
             else if(IsOperator(currentChar)){
-                Debug.Log("Porque entra aqui");
                 tokens.Add(Operator());
             }
             else if(PunctuationList.Contains(currentChar)){
@@ -168,12 +166,9 @@ public class Lexer
     {
         if (IsNegativeNumber())
         {
-            Debug.Log("Es un numero negativo");
             return Number();
         }
         else {
-            Debug.Log("Es un operador de resta");
-            Debug.Log("Siguiente Token: "+source[position]);
             position++;
             return new Token(TokenType.ArithmeticOperator, "-", line);
         }
@@ -204,14 +199,12 @@ public class Lexer
         if (position < source.Length && source[position] == '-')
         {
             position++;
-            Debug.Log("Numero negativo");
         }
         while (position < source.Length && char.IsDigit(source[position]))
         {
             position++;
         }
         string value = source.Substring(startPos, position - startPos);
-        Debug.Log("Token Number: "+value);
         return new Token(TokenType.Number, value, line);
     }
 

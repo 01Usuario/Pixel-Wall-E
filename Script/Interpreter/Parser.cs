@@ -13,7 +13,7 @@ public class Parser
         this.currentTokenIndex = 0;
 
     }
-     public ASTNode ParseProgram(List<Token> tokens)
+     public ProgramNode ParseProgram(List<Token> tokens)
     {
         ProgramNode program = new ProgramNode();
         program.Instructions = new List<ASTNode>();

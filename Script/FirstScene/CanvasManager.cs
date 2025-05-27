@@ -12,13 +12,13 @@ public class CanvasManager : MonoBehaviour
 
     public Button confirmButton;
     public RawImage canvasDisplay;
-    private int canvasSize;
+    public int canvasSize;
     private Texture2D canvasTexture;
 
     public TMP_Text errorText;
 
     void Start(){
-        InitializeCanvas(4);
+        InitializeCanvas(100);
         sizeInput.interactable=false;
         confirmButton.interactable=false;
         confirmButton.onClick.AddListener(OnConfirmResize);

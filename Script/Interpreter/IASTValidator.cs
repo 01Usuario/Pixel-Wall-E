@@ -1,13 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.PlasticSCM.Editor.WebApi;
 using UnityEngine;
 
-public interface IASTValidator <T> where T : ASTNode
+public interface IASTValidator<T> where T : ASTNode
 {
     void Validate(T node, SemanticContext context);
 }
+
 public class SemanticContext {
     public BrushState Brush { get; } = new BrushState(); 
     public HashSet<string> Variables { get; } = new HashSet<string>();
@@ -22,11 +22,19 @@ public class SemanticContext {
     public void AddWarning(string message) => Errors.Add($"[Advertencia] {message}");
 }
 
- public class FirstSpawnNodeValidator : IASTValidator<ProgramNode>
- {
-    public void Validate(ProgramNode node, SemanticContext context)
+
+public class SpawnValidator : IASTValidator<SpawnNode>,IASTValidator<ProgramNode>
+{
+    private int _canvasSize;
+
+    public SpawnValidator(int canvasSize)
     {
-        if (node.Instructions.Count == 0|| !(node.Instructions[0] is (SpawnNode)))
+        _canvasSize = canvasSize;
+    }
+
+    public void Validate(ProgramNode programNode, SemanticContext context)
+    {
+         if (programNode.Instructions.Count == 0|| !(programNode.Instructions[0] is (SpawnNode)))
         {
             context.AddError("El codigo no inicia con la instruccion Spawn");  
         }
@@ -36,20 +44,11 @@ public class SemanticContext {
         }
         context.HasSpawn = true;
     }
- }
-public class SpawnValidator : IASTValidator<SpawnNode> 
-{
-    private int _canvasSize; 
-
-    public SpawnValidator(int canvasSize) 
-    {
-        _canvasSize = canvasSize;
-    }
-
     public void Validate(SpawnNode node, SemanticContext context)
     {
+
         // Regla 1: X e Y deben ser no negativos
-        if (node.X < 0 || node.Y < 0 ||node.X >= _canvasSize || node.Y >= _canvasSize )
+        if (node.X < 0 || node.Y < 0 || node.X >= _canvasSize || node.Y >= _canvasSize)
         {
             context.AddError($"Coordenadas inválidas: ({node.X}, {node.Y}). Deben estar dentro del canvas");
         }
@@ -59,6 +58,7 @@ public class SpawnValidator : IASTValidator<SpawnNode>
             context.Brush.CurrentY = node.Y;
         }
     }
+    
 }
 public class ColorValidator : IASTValidator<ColorNode> 
 {
@@ -106,7 +106,7 @@ public class SizeValidator : IASTValidator<SizeNode>
     }
 }
 
-public class DrawComandValidator : IASTValidator<DrawCommandNode>
+public class DrawCommandValidator : IASTValidator<DrawCommandNode>
 {
     public void Validate(DrawCommandNode node, SemanticContext context)
     {
@@ -253,11 +253,7 @@ public class DrawComandValidator : IASTValidator<DrawCommandNode>
                 context.AddError($"Función no reconocida: '{node.Name}'.");
                 return;
             }
-
-            // Obtener especificaciones de la función
             var spec = _validFunctions[node.Name];
-
-            // Validar cantidad de parámetros
             if (node.Parameters.Count != spec.ExpectedParamCount)
             {
                 context.AddError(
@@ -308,13 +304,11 @@ public class DrawComandValidator : IASTValidator<DrawCommandNode>
             }
         }
 
-        // Método auxiliar para detectar nodos numéricos
         private bool IsNumericNode(ASTNode node)
         {
             return node is NumberNode || node is VariableNode || node is BinaryOpNode;
         }
 
-        // Clase interna para especificaciones de funciones
         private class FunctionInspector
         {
             public int ExpectedParamCount { get; }

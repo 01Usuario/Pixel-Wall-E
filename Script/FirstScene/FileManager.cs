@@ -28,37 +28,65 @@ public class FileManager : MonoBehaviour
         File.WriteAllText(path, content.text+" ");
     }
 
-    public void Execute(){
-
-        string code = content.text;
-
-        try
+        public void Execute()
         {
-            Lexer lexer = new Lexer(code);
-            List<Token> tokens = lexer.Tokenize();
+            string code = content.text;
+            try
+            {
+                // 1. Tokenizar y Parsear
+                Lexer lexer = new Lexer(code);
+                List<Token> tokens = lexer.Tokenize();
 
-              foreach (Token token in tokens) {
-                 Debug.Log("Token: " + token.Value.ToString() + "    Tipo: " + token.Type.ToString() + "      Linea: " + token.Line);
-             } 
-           /*  Parser parser = new Parser(tokens);
-            ASTNode program = parser.ParseProgram(tokens);  */
-            errorText.text = "Análisis exitoso";
-            errorText.color = Color.green;
-        
-            
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($" Error: {e.Message}");
-            if (errorText != null)
+                Parser parser = new Parser(tokens);
+                ProgramNode program = parser.ParseProgram(tokens);
+
+                // 2. Validación Semántica
+                SemanticContext context = new SemanticContext
+                {
+                    CanvasSize = canvasManager.canvasSize // Obtener tamaño actual del canvas
+                };
+
+                ValidatorRunner validator = new ValidatorRunner(context.CanvasSize);
+                validator.Validate(program, context); 
+
+                // 3. Manejar errores
+                if (context.Errors.Count > 0)
+                {
+                    errorText.text = string.Join("\n", context.Errors);
+                    errorText.color = Color.red;
+                    return; // Detener ejecución si hay errores
+                }
+
+                // 4. Ejecutar instrucciones (solo si no hay errores)
+                //ExecuteProgram(program, context);
+                errorText.text = "¡Ejecución exitosa!";
+                errorText.color = Color.green;
+            }
+            catch (System.Exception e)
             {
                 errorText.text = $"Error: {e.Message}";
                 errorText.color = Color.red;
             }
         }
-        
-        
-    }
+
+       /*  private void ExecuteProgram(ASTNode program, SemanticContext context)
+        {
+            // Reiniciar el canvas si es necesario
+            canvasManager.ClearCanvas();
+
+            // Ejecutar cada instrucción usando el estado del pincel
+            foreach (var instruction in ((ProgramNode)program).Instructions)
+            {
+                if (instruction is SpawnNode spawn)
+                {
+                    canvasManager.SetPixel(spawn.X, spawn.Y, Color.black); // Ejemplo
+                }
+                else if (instruction is DrawCommandNode drawCmd)
+                {
+                    // Lógica para dibujar líneas/círculos
+                }
+            }
+        } */
     
      private string GetFileBrowserPath(bool isLoad) {
         #if UNITY_EDITOR
