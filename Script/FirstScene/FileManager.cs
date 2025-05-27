@@ -40,8 +40,8 @@ public class FileManager : MonoBehaviour
               foreach (Token token in tokens) {
                  Debug.Log("Token: " + token.Value.ToString() + "    Tipo: " + token.Type.ToString() + "      Linea: " + token.Line);
              } 
-            Parser parser = new Parser(tokens);
-            ASTNode program = parser.ParseProgram(tokens); 
+           /*  Parser parser = new Parser(tokens);
+            ASTNode program = parser.ParseProgram(tokens);  */
             errorText.text = "Análisis exitoso";
             errorText.color = Color.green;
         

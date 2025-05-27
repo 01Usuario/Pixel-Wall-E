@@ -1,9 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
-using UnityEngine.Analytics;
-
 public class Lexer 
 {
    private readonly string source;
@@ -50,47 +47,53 @@ public class Lexer
     private int openCorchetes = 0;
 
    
-    public List<Token> Tokenize(){
+    public List<Token> Tokenize()
+    {
 
-    List<Token> tokens = new List<Token>();
-    while(position < source.Length){
+        List<Token> tokens = new List<Token>();
+        while(position < source.Length){
+            SkipWhiteSpaces();
+            if(position >= source.Length){
+                break;
+            }
+            
+            char currentChar = source[position];
+                if (source[position] == '-')
+                {
+                    Debug.Log("ME encontre un menos salvaje");
+                    tokens.Add(ProcessMinus());
+                    continue;
+                }
+            if(char.IsLetter(currentChar)){
+                tokens.Add(ClassifyToken());
+            }
+            else if(char.IsDigit(currentChar))
+            {
+                tokens.Add(Number());
+            }
+            else if(currentChar == '"'){
+                tokens.Add(String());
+            }
+            else if(IsOperator(currentChar)){
+                Debug.Log("Porque entra aqui");
+                tokens.Add(Operator());
+            }
+            else if(PunctuationList.Contains(currentChar)){
+                tokens.Add(IsPunctuation());
+            }
+            
+            else
+            throw new System.Exception($"Token inesperado: {currentChar} en la linea {line}, posicion {position}");
+            
+        }
+        
+        if (openCorchetes != 0)
+                throw new System.Exception($"Corchetes desbalanceados");
+            // Verificar si hay parentesis desbalanceados.
+            if (openParentheses != 0)
+                throw new System.Exception($"Parentesis desbalanceados");
 
-        SkipWhiteSpaces();
-        if(position >= source.Length){
-            break;
-        }
-        
-        char currentChar = source[position];
-        
-        
-        if(char.IsLetter(currentChar)){
-            tokens.Add(ClassifyToken());
-        }
-        else if(char.IsDigit(currentChar)){
-            tokens.Add(Number());
-        }
-        else if(currentChar == '"'){
-            tokens.Add(String());
-        }
-        else if(IsOperator(currentChar)){
-            tokens.Add(Operator());
-        }
-        else if(PunctuationList.Contains(currentChar)){
-            tokens.Add(IsPunctuation());
-        }
-        
-        else
-        throw new System.Exception($"Token inesperado: {currentChar} en la linea {line}, posicion {position}");
-        
-    }
-     
-    if (openCorchetes != 0)
-            throw new System.Exception($"Corchetes desbalanceados");
-        // Verificar si hay parentesis desbalanceados.
-        if (openParentheses != 0)
-            throw new System.Exception($"Parentesis desbalanceados");
-
-    return tokens;
+        return tokens;
 
 }
 
@@ -161,20 +164,55 @@ public class Lexer
 
     
     }
-    // Metodo que tokeniza un numero.
+    private Token ProcessMinus()
+    {
+        if (IsNegativeNumber())
+        {
+            Debug.Log("Es un numero negativo");
+            return Number();
+        }
+        else {
+            Debug.Log("Es un operador de resta");
+            Debug.Log("Siguiente Token: "+source[position]);
+            position++;
+            return new Token(TokenType.ArithmeticOperator, "-", line);
+        }
+
+    }
+    private bool IsNegativeNumber() {
+        // Si no hay un dígito después del '-', no es un número negativo
+        if (position + 1 >= source.Length || !char.IsDigit(source[position + 1])) {
+            return false;
+        }
+        
+         if (position == 0)
+        {
+            return true;
+        }
+        // Caso 2: Si el '-' está precedido por un número, variable o ')', es operador
+        char prevChar = source[position - 1];
+        if (char.IsDigit(prevChar) || char.IsLetter(prevChar) || prevChar == ')')
+        {
+            return false;
+        }
+        return true;
+    }
+
     private Token Number()
     {
-        // Guardar la posicion inicial.
         int startPos = position;
-        // Mientras no se haya alcanzado el final del codigo fuente y el caracter actual sea un digito.
+        if (position < source.Length && source[position] == '-')
+        {
+            position++;
+            Debug.Log("Numero negativo");
+        }
         while (position < source.Length && char.IsDigit(source[position]))
         {
             position++;
         }
-        // Obtener el valor del numero.
         string value = source.Substring(startPos, position - startPos);
-        // Devolver un token de tipo numero.
-        return new Token(TokenType.Number, value,line);
+        Debug.Log("Token Number: "+value);
+        return new Token(TokenType.Number, value, line);
     }
 
     // Metodo que tokeniza una cadena de texto.
@@ -182,14 +220,11 @@ public class Lexer
     {
         // Guardar la posicion inicial.
         int startPos = position;
-        // Incrementar la posicion y la columna para omitir la comilla inicial.
         position++;
-        // Mientras no se haya alcanzado el final del codigo fuente y el caracter actual no sea una comilla.
         while (position < source.Length && source[position] != '"')
         {
             position++;
         }
-        // Si se alcanza el final del codigo fuente sin encontrar una comilla de cierre, lanzar una excepcion.
         if (position >= source.Length)
             throw new System.Exception ($"Literal de cadena sin cerrar en la linea {line}, posicion {position}");
         string value = source.Substring(startPos + 1, position - startPos - 1);
@@ -232,8 +267,7 @@ public class Lexer
 
             }
         }
-        throw new System.Exception($"Operador no reconocido en la linea {line}, posicion {position}");
-
+        throw new System.Exception($"Operador no reconocido en la linea {line}, posicion {position}, encontrado {source[position]}");
         
     }
 

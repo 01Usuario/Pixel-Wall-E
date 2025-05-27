@@ -29,27 +29,26 @@ public class Parser
     private ASTNode ParseInstruction()
 {
     Token token = CurrentToken();
-    
-    // Primero verificamos el tipo de token
+
     switch (token.Type)
-    {
-        case TokenType.Keyword:
-            return ParseKeywordInstruction();
-            
-        case TokenType.DrawingCommand:
-            return ParseDrawCommand();
-            
-        case TokenType.Function:
-            return ParseFunction();
-            
-        case TokenType.Identifier:
-            if (PeekNextToken()?.Type == TokenType.AssignmentOperator)
-                return ParseAssign();
-            break;
-                
-        case TokenType.Label:
-            return ParseLabel();
-    }
+        {
+            case TokenType.Keyword:
+                return ParseKeywordInstruction();
+
+            case TokenType.DrawingCommand:
+                return ParseDrawCommand();
+
+            case TokenType.Function:
+                return ParseFunction();
+
+            case TokenType.Identifier:
+                if (PeekNextToken()?.Type == TokenType.AssignmentOperator)
+                    return ParseAssign();
+                break;
+
+            case TokenType.Label:
+                return ParseLabel();
+        }
     
     throw new Exception($"Instrucción no reconocida: {token.Value} (línea {token.Line})");
 }
@@ -110,20 +109,19 @@ public class Parser
         return new SpawnNode(x.Number,y.Number);
     }
     private NumberNode ParseNumber()
-{
-    if (CurrentToken().Type != TokenType.Number)
     {
-        throw new Exception($"Se esperaba un número en línea {CurrentToken().Line}");
-    }
-
-    if (!int.TryParse(CurrentToken().Value, out int numberValue))
-    {
-        throw new Exception($"Número inválido '{CurrentToken().Value}' en línea {CurrentToken().Line}");
-    }
-    NumberNode node = new NumberNode(numberValue);
-    ConsumeToken(); 
-
-    return node;
+        
+        if (CurrentToken().Type != TokenType.Number)
+        {
+            throw new Exception($"Se esperaba un número en línea {CurrentToken().Line}");
+        }
+       Token currentToken = CurrentToken();
+        if (!int.TryParse(currentToken.Value, out int numberValue))
+        {
+            throw new Exception($"Número inválido: '{currentToken.Value}' en línea {currentToken.Line}");
+        }
+         ConsumeToken();
+        return new NumberNode(numberValue);
 }
     private VariableNode ParseVariable()
     {
@@ -158,8 +156,10 @@ public class Parser
         }
         else if (CurrentToken().Type == TokenType.Number)
         {
-            return ParseNumber();
-        }
+           
+           return ParseNumber();
+            
+        }   
         else if (CurrentToken().Type == TokenType.Label)
         {
             return ParseLabel();
@@ -238,14 +238,6 @@ public class Parser
 
     ASTNode expr = ParseExpression();
 
-    // Si hay tokens restantes que no son parte de otra instrucción, error
- /*    if (currentTokenIndex < tokens.Count && 
-        CurrentToken().Type != TokenType.Keyword && 
-        CurrentToken().Type != TokenType.DrawingCommand && 
-        CurrentToken().Type != TokenType.Identifier)
-    {
-        throw new Exception($"Carácter inesperado: '{CurrentToken().Value}'");
-    } */
 
     return new AssignNode(variable, expr);
 } 
