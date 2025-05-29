@@ -8,18 +8,31 @@ public interface IASTValidator<T> where T : ASTNode
     void Validate(T node, SemanticContext context);
 }
 
-public class SemanticContext {
-    public BrushState Brush { get; } = new BrushState(); 
+public class SemanticContext
+{
+    public BrushState Brush { get; } = new BrushState();
     public HashSet<string> Variables { get; } = new HashSet<string>();
     public Dictionary<string, System.Type> VariableTypes { get; } = new Dictionary<string, System.Type>();
     public HashSet<string> Labels { get; } = new HashSet<string>();
     public List<string> Errors { get; } = new List<string>();
+    public List<string> Warnings { get; } = new List<string>();
     public string CurrentBrushColor { get; set; }
     public bool HasSpawn { get; set; } = false;
-    public int CanvasSize { get; set; } 
+    public int CanvasSize { get; set; }
 
     public void AddError(string message) => Errors.Add(message);
-    public void AddWarning(string message) => Errors.Add($"[Advertencia] {message}");
+    public void AddWarning(string message) => Warnings.Add($"[Advertencia] {message}");
+
+    public void AddAllLabelsed(ProgramNode intructions, HashSet<string> labels)
+    {
+        foreach (var instruction in intructions.Instructions)
+        {
+            if (instruction is LabelNode labelNode)
+            {
+                labels.Add(labelNode.Name);
+            }
+        }
+    }
 }
 
 
@@ -34,15 +47,22 @@ public class SpawnValidator : IASTValidator<SpawnNode>,IASTValidator<ProgramNode
 
     public void Validate(ProgramNode programNode, SemanticContext context)
     {
-         if (programNode.Instructions.Count == 0|| !(programNode.Instructions[0] is (SpawnNode)))
+        bool hasSpawn = false;
+        if (programNode.Instructions.Count == 0 || !(programNode.Instructions[0] is (SpawnNode)))
         {
-            context.AddError("El codigo no inicia con la instruccion Spawn");  
+            context.AddError("El codigo no inicia con la instruccion Spawn");
         }
-        else if (context.HasSpawn) 
+        foreach (var instruction in programNode.Instructions)
         {
-            context.AddError("Spawn solo puede usarse una vez.");
+            if (instruction is SpawnNode)
+            {
+                if (hasSpawn)
+                {
+                    context.AddError("Solo puede haber un comando Spawn");
+                }
+                hasSpawn = true;
+            }
         }
-        context.HasSpawn = true;
     }
     public void Validate(SpawnNode node, SemanticContext context)
     {
@@ -168,24 +188,35 @@ public class DrawCommandValidator : IASTValidator<DrawCommandNode>
         {
             context.AddError($"El comando DrawCircle requiere 3 parámetros.");
         }
-        if (node.Parameters[0] is NumberNode dirX && node.Parameters[1] is NumberNode dirY && node.Parameters[2] is NumberNode radius) {
+        if (node.Parameters[0] is NumberNode dirX && node.Parameters[1] is NumberNode dirY
+         && node.Parameters[2] is NumberNode radius)
+        {
             ValidateCoordenadas(dirX.Number, dirY.Number, context);
             if (radius.Number <= 0 || radius.Number >= context.CanvasSize)
             {
                 context.AddError($"Distancia inválida en DrawCircle: {radius.Number}. Debe ser mayor que cero.");
             }
-        
+            int safeDistance = Math.Min(
+            context.CanvasSize - context.Brush.CurrentX,
+            context.CanvasSize - context.Brush.CurrentY
+            );
+            if (radius.Number > safeDistance)
+            {
+                context.AddError($"Radio demasiado grande: {radius.Number} (máx: {safeDistance})");
+            }
+
             int newX = context.Brush.CurrentX + radius.Number * dirX.Number;
             int newY = context.Brush.CurrentY + radius.Number * dirY.Number;
             if (newX < 0 || newX >= context.CanvasSize || newY < 0 || newY >= context.CanvasSize)
             {
-                context.AddError($"DrawLine lleva a Wall-E fuera del canvas. Posición final: ({newX}, {newY})");
+                context.AddError($"DrawCircle lleva a Wall-E fuera del canvas. Posición final: ({newX}, {newY})");
             }
             if (context.Errors.Count == 0)
             {
                 context.Brush.CurrentX = newX;
                 context.Brush.CurrentY = newY;
             }
+            
         }
         else
             context.AddError($"Parametros Invalidos ");
@@ -208,7 +239,7 @@ public class DrawCommandValidator : IASTValidator<DrawCommandNode>
             int newY = context.Brush.CurrentY + distance.Number * dirY.Number;
             if (newX < 0 || newX >= context.CanvasSize || newY < 0 || newY >= context.CanvasSize)
             {
-                context.AddError($"DrawLine lleva a Wall-E fuera del canvas. Posición final: ({newX}, {newY})");
+                context.AddError($"DrawRectangle lleva a Wall-E fuera del canvas. Posición final: ({newX}, {newY})");
             }
             if (context.Errors.Count == 0)
             {
@@ -226,6 +257,10 @@ public class DrawCommandValidator : IASTValidator<DrawCommandNode>
             if (context.CurrentBrushColor == "Transparent")
             {
                 context.AddError("No se puede usar Fill con color Transparent.");
+            }
+            if (context.CurrentBrushColor == context.Brush.Color)
+            {
+                context.Warnings.Add("El color de relleno coincide con el color de la casilla actual.");
             }
         }
     }
@@ -324,6 +359,8 @@ public class DrawCommandValidator : IASTValidator<DrawCommandNode>
 
 public class GoToValidator : IASTValidator<GoToNode>
 {
+    private const int MAX_LOOPS = 1000;
+    private int loopCount = 0;
     public void Validate(GoToNode node, SemanticContext context)
     {
         // Verificar si la etiqueta existe
@@ -337,13 +374,58 @@ public class GoToValidator : IASTValidator<GoToNode>
         {
             context.AddError($"La condición en GoTo debe ser una expresión booleana.");
         }
+
+
+
+        if (++loopCount > MAX_LOOPS)
+        {
+            context.AddError("Posible bucle infinito detectado");
+        }
     }
+
 
     private bool IsBooleanExpression(ASTNode node)
     {
-        return node is BooleanOpNode || node is VariableNode;
+        return node is BooleanOpNode;
     }
-   
+
+}
+
+    public class VariableValidator : IASTValidator<VariableNode>
+        {
+            public void Validate(VariableNode node, SemanticContext context)
+            {
+                context.Variables.Add(node.Variable);
+            }
+        }
+    public class LabelValidator : IASTValidator<LabelNode>
+    {
+        public void Validate(LabelNode node, SemanticContext context)
+    {
+        if (context.Labels.Contains(node.Name))
+        {
+            context.AddWarning ($"Etiqueta duplicada: '{node.Name}', posible error de ambiguedad");
+        }
+        else
+        {
+            context.Labels.Add(node.Name);
+        }
+    }
+    }
+    public class AssignValidator : IASTValidator<AssignNode>
+    {
+        public void Validate(AssignNode node, SemanticContext context)
+        {
+            if (node.Variable == null)
+            {
+                context.AddError("No se puede asignar a una variable nula.");
+            }
+            if (node.Expression == null)
+            {
+                context.AddError("No hay nada que asignar");
+            }
+            
+        }
 }
 
 

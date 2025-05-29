@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Runtime.InteropServices;
 
 
 public class Parser
@@ -137,9 +138,9 @@ public class Parser
     }   
     private LabelNode ParseLabel()
     {
-        var lebelName = CurrentToken().Value;
+        var labelName = CurrentToken().Value;
         ConsumeToken();
-        return new LabelNode(lebelName);
+        return new LabelNode(labelName);
     }  
    private ASTNode ParsePrimary()
     {
@@ -148,23 +149,14 @@ public class Parser
 
         Token token = CurrentToken();
 
-        
-
         if (CurrentToken().Type == TokenType.Identifier || CurrentToken().Type==TokenType.StringLiteral)
         {
             return ParseVariable();
         }
         else if (CurrentToken().Type == TokenType.Number)
         {
-           
            return ParseNumber();
-            
         }   
-        else if (CurrentToken().Type == TokenType.Label)
-        {
-            return ParseLabel();
-        }
-       
         else if (CurrentToken().Type == TokenType.Function)
         {
             return ParseFunction();
@@ -184,25 +176,37 @@ public class Parser
         }
 
     }
-   private ASTNode ParseExpression(int minPrecedence = 0)
-{
-    ASTNode left = ParsePrimary();
-
-    while (currentTokenIndex < tokens.Count)
+    private ASTNode ParseExpression(int minPrecedence = 0)
     {
-        Token opToken = CurrentToken();
-        
-        if (!IsOperator(opToken)) break;
+        ASTNode left = ParsePrimary();
+        while (currentTokenIndex < tokens.Count)
+        {
+            Token opToken = CurrentToken();
 
-        int precedence = GetOperatorPriorityLevel(opToken.Value);
-        if (precedence < minPrecedence) break;
+            if (!IsOperator(opToken)) break;
 
-        ConsumeToken();
-        ASTNode right = ParseExpression(precedence);
-        left = new BinaryOpNode(opToken.Value, left, right);
+            int precedence = GetOperatorPriorityLevel(opToken.Value);
+            if (precedence < minPrecedence) break;
+
+            ConsumeToken();
+            ASTNode right = ParseExpression(precedence);
+            if (IsBooleanOperator(opToken.Value))
+            {
+                left = new BooleanOpNode(opToken.Value, left, right);
+            }
+            else
+            {
+                left = new BinaryOpNode(opToken.Value, left, right);
+            }
+        }
+
+        return left;
     }
-
-    return left;
+private bool IsBooleanOperator(string op)
+{
+    return op == "&&" || op == "||" || op == "==" || 
+           op == "!=" || op == ">" || op == "<" || 
+           op == ">=" || op == "<=";
 }
     private bool IsOperator(Token token)
     {

@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
 
+
 public class FileManager : MonoBehaviour
 {
     public TMP_InputField content;
@@ -36,31 +37,43 @@ public class FileManager : MonoBehaviour
                 // 1. Tokenizar y Parsear
                 Lexer lexer = new Lexer(code);
                 List<Token> tokens = lexer.Tokenize();
-
+                foreach (Token token in tokens)
+                {
+                    Debug.Log("Valor: " + token.Value+", Tipo: " + token.Type);
+                }
                 Parser parser = new Parser(tokens);
                 ProgramNode program = parser.ParseProgram(tokens);
-
+                foreach (ASTNode instruction in program.Instructions)
+                {
+                    Debug.Log("Instrucción: " + instruction.GetType());
+                }
                 // 2. Validación Semántica
                 SemanticContext context = new SemanticContext
                 {
                     CanvasSize = canvasManager.canvasSize // Obtener tamaño actual del canvas
                 };
-
+                context.AddAllLabelsed(program, context.Labels);
                 ValidatorRunner validator = new ValidatorRunner(context.CanvasSize);
                 validator.Validate(program, context); 
-
-                // 3. Manejar errores
+           
                 if (context.Errors.Count > 0)
                 {
-                    errorText.text = string.Join("\n", context.Errors);
+                    errorText.text = string.Join( "\n", context.Errors);
                     errorText.color = Color.red;
-                    return; // Detener ejecución si hay errores
+                    return; 
                 }
 
-                // 4. Ejecutar instrucciones (solo si no hay errores)
-                //ExecuteProgram(program, context);
-                errorText.text = "¡Ejecución exitosa!";
-                errorText.color = Color.green;
+                if (context.Warnings.Count > 0)
+                {
+                    errorText.text = string.Join("\n", context.Warnings)+"\n!! Compilado con advertencias !!";
+                    errorText.color = Color.yellow;
+                }
+                else
+                {
+                    errorText.text = "!! Compilado correctamente !!";
+                    errorText.color = Color.green;
+                }
+
             }
             catch (System.Exception e)
             {
@@ -69,24 +82,6 @@ public class FileManager : MonoBehaviour
             }
         }
 
-       /*  private void ExecuteProgram(ASTNode program, SemanticContext context)
-        {
-            // Reiniciar el canvas si es necesario
-            canvasManager.ClearCanvas();
-
-            // Ejecutar cada instrucción usando el estado del pincel
-            foreach (var instruction in ((ProgramNode)program).Instructions)
-            {
-                if (instruction is SpawnNode spawn)
-                {
-                    canvasManager.SetPixel(spawn.X, spawn.Y, Color.black); // Ejemplo
-                }
-                else if (instruction is DrawCommandNode drawCmd)
-                {
-                    // Lógica para dibujar líneas/círculos
-                }
-            }
-        } */
     
      private string GetFileBrowserPath(bool isLoad) {
         #if UNITY_EDITOR

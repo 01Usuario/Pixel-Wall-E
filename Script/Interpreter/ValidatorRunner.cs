@@ -4,17 +4,19 @@ using System;
 using System.Collections.Generic;
 public class ValidatorRunner
 {
-    // 1. Instanciar todos los validadores
     private SpawnValidator spawnValidator;
     private ColorValidator colorValidator = new ColorValidator();
     private SizeValidator sizeValidator;
     private DrawCommandValidator drawCommandValidator = new DrawCommandValidator();
     private FunctionValidator functionValidator = new FunctionValidator();
     private GoToValidator gotoValidator = new GoToValidator();
+    private FillValidator fillValidator = new FillValidator();
+    private LabelValidator labelValidator = new LabelValidator();
+    private VariableValidator variableValidator = new VariableValidator();
+    private AssignValidator assignValidator = new AssignValidator();
 
     public ValidatorRunner(int canvasSize)
     {
-        // 2. Inicializar validadores con dependencias
         spawnValidator = new SpawnValidator(canvasSize);
         sizeValidator = new SizeValidator(canvasSize);
     }
@@ -51,9 +53,17 @@ public class ValidatorRunner
                     break;
 
                 case FillNode fillNode:
-                    new FillValidator().Validate(fillNode, context);
+                    fillValidator.Validate(fillNode, context);
                     break;
-
+                case LabelNode labelNode:
+                    labelValidator.Validate(labelNode, context);
+                    break;
+                case VariableNode variableNodeNode:
+                   variableValidator.Validate(variableNodeNode, context);
+                    break;
+                case AssignNode assignNode:
+                    assignValidator.Validate(assignNode, context);
+                    break;
                 default:
                     context.AddError($"Instrucción no soportada: {instruction.GetType().Name}");
                     break;
