@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BrushState
+public class Brush
 {
     public int CurrentX { get; set; }
     public int CurrentY { get; set; }

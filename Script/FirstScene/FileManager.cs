@@ -29,7 +29,7 @@ public class FileManager : MonoBehaviour
         File.WriteAllText(path, content.text+" ");
     }
 
-        public void Execute()
+        public void Evaluate()
         {
             string code = content.text;
             try
@@ -63,16 +63,18 @@ public class FileManager : MonoBehaviour
                     return; 
                 }
 
-                if (context.Warnings.Count > 0)
-                {
-                    errorText.text = string.Join("\n", context.Warnings)+"\n!! Compilado con advertencias !!";
-                    errorText.color = Color.yellow;
-                }
-                else
-                {
-                    errorText.text = "!! Compilado correctamente !!";
-                    errorText.color = Color.green;
-                }
+            if (context.Warnings.Count > 0)
+            {
+                errorText.text = string.Join("\n", context.Warnings) + "\n!! Compilado con advertencias !!";
+                errorText.color = Color.yellow;
+            }
+            else
+            {
+                errorText.text = "!! Compilado correctamente !!";
+                errorText.color = Color.green;
+                Evaluator evaluator = new Evaluator(canvasManager);
+                evaluator.Evaluate(program);
+            }
 
             }
             catch (System.Exception e)

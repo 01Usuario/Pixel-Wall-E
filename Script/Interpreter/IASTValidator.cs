@@ -10,7 +10,7 @@ public interface IASTValidator<T> where T : ASTNode
 
 public class SemanticContext
 {
-    public BrushState Brush { get; } = new BrushState();
+    public Brush Brush { get; } = new Brush();
     public HashSet<string> Variables { get; } = new HashSet<string>();
     public Dictionary<string, System.Type> VariableTypes { get; } = new Dictionary<string, System.Type>();
     public HashSet<string> Labels { get; } = new HashSet<string>();

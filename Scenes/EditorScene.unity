@@ -757,6 +757,7 @@ MonoBehaviour:
   resizeButton: {fileID: 1854491822}
   confirmButton: {fileID: 1283874949}
   canvasDisplay: {fileID: 410856487}
+  canvasSize: 0
   errorText: {fileID: 359099935}
 --- !u!4 &387712389
 Transform:
@@ -1197,7 +1198,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1438617670}
         m_TargetAssemblyTypeName: FileManager, Assembly-CSharp
-        m_MethodName: Execute
+        m_MethodName: Evaluate
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

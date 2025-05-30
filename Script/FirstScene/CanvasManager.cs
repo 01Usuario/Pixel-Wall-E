@@ -64,9 +64,15 @@ public class CanvasManager : MonoBehaviour
         SetPixel(canvasSize-1, canvasSize-1, Color.blue);
 
     }
+    public void SetPixelDirect(int x, int y, Color color)
+    {
+        if (x < 0 || y < 0 || x >=canvasSize || y >= canvasSize) return;
+        canvasTexture.SetPixel(x, y, color);
+    }
 
     // Método para pintar un píxel
-    public void SetPixel(int x, int y, Color color) {
+    public void SetPixel(int x, int y, Color color)
+    {
         if (x < 0 || y < 0 || x >= canvasSize || y >= canvasSize) return;
         canvasTexture.SetPixel(x, y, color);
         canvasTexture.Apply();
