@@ -11,15 +11,21 @@ public class FileManager : MonoBehaviour
     public TMP_InputField content;
     public CanvasManager canvasManager;
     public TMP_Text errorText;
-   public void LoadFile() {
-        try {
+    public DrawingEngine drawingEngine;
+   public void LoadFile()
+    {
+        try
+        {
             string path = GetFileBrowserPath(true);
-            if (!string.IsNullOrEmpty(path)) {
-                content.text = File.ReadAllText(path)+"";
+            if (!string.IsNullOrEmpty(path))
+            {
+                content.text = File.ReadAllText(path) + "";
             }
-        } catch (System.Exception e) {
+        }
+        catch (System.Exception e)
+        {
             Debug.LogError($"Error al cargar: {e.Message}");
-            
+
         }
     }
     public void Save()
@@ -34,8 +40,9 @@ public class FileManager : MonoBehaviour
             string code = content.text;
             try
             {
+            DrawingEngine drawingEngine = new DrawingEngine(canvasManager.canvasSize);
                 // 1. Tokenizar y Parsear
-                Lexer lexer = new Lexer(code);
+            Lexer lexer = new Lexer(code);
                 List<Token> tokens = lexer.Tokenize();
                 foreach (Token token in tokens)
                 {
@@ -72,7 +79,7 @@ public class FileManager : MonoBehaviour
             {
                 errorText.text = "!! Compilado correctamente !!";
                 errorText.color = Color.green;
-                Evaluator evaluator = new Evaluator(canvasManager);
+                Evaluator evaluator = new Evaluator(canvasManager, drawingEngine);
                 evaluator.Evaluate(program);
             }
 
@@ -80,6 +87,7 @@ public class FileManager : MonoBehaviour
             catch (System.Exception e)
             {
                 errorText.text = $"Error: {e.Message}";
+                Debug.LogError($"Error: {e.Message}");
                 errorText.color = Color.red;
             }
         }

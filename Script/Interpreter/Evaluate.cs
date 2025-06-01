@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
-
+using System;
+using System.Collections;
+using System.Linq;
+using Unity.Mathematics;
 public class Evaluator
 {
     private CanvasManager canvasManager;
@@ -9,13 +12,16 @@ public class Evaluator
     private Dictionary<string, int> labels;
     private ProgramNode program;
     private int currentIndex;
+    private DrawingEngine drawingEngine;
 
-    public Evaluator(CanvasManager canvasManager)
+    public Evaluator(CanvasManager canvasManager, DrawingEngine drawingEngine)
     {
         this.canvasManager = canvasManager;
         this.brush = new Brush();
         this.variables = new Dictionary<string, object>();
         this.labels = new Dictionary<string, int>();
+        this.drawingEngine = drawingEngine;
+
     }
 
     public void Evaluate(ProgramNode program)
@@ -49,170 +55,241 @@ public class Evaluator
             case SpawnNode spawn:
                 brush.CurrentX = spawn.X;
                 brush.CurrentY = spawn.Y;
-                Debug.Log("Cooredenadas" + brush.CurrentX + "," + brush.CurrentY);
                 break;
 
             case ColorNode color:
                 brush.Color = color.Color;
-                Debug.Log("Color " + brush.Color);
                 break;
 
             case SizeNode size:
                 brush.Size = size.Size;
                 break;
-        }
-    }
-    private void ExecuteDrawCommand(DrawCommandNode node)
-    {
-        switch (node.Name)
-        {
-            case "DrawLine":
-                ExecuteDrawLine(
-                    (int)EvaluateExpression(node.Parameters[0]),
-                    (int)EvaluateExpression(node.Parameters[1]),
-                    (int)EvaluateExpression(node.Parameters[2])
-                );
+            case AssignNode assign:
+                variables[assign.Variable] = EvaluateExpression(assign.Expression);
                 break;
-
-                /*  case "DrawCircle":
-                     ExecuteDrawCircle(
-                         (int)EvaluateExpression(node.Parameters[0]),
-                         (int)EvaluateExpression(node.Parameters[1]),
-                         (int)EvaluateExpression(node.Parameters[2])
-                     );
-                     break;
-
-                 case "DrawRectangle":
-                     ExecuteDrawRectangle(
-                         (int)EvaluateExpression(node.Parameters[0]),
-                         (int)EvaluateExpression(node.Parameters[1]),
-                         (int)EvaluateExpression(node.Parameters[2]),
-                         (int)EvaluateExpression(node.Parameters[3]),
-                         (int)EvaluateExpression(node.Parameters[4])
-                     );
-                     break; */
+            case FunctionNode func:
+                Debug.Log("Evaluando Funcion " + func.Name);
+                EvaluateFunction(func);
+                break;
+            case DrawCommandNode drawCmd:
+                EvaluateDrawCommand(drawCmd);
+                break;
         }
     }
-
-    private void ExecuteDrawLine(int dirX, int dirY, int distance)
-    {
-        int startX = brush
-.CurrentX;
-        int startY = brush
-.CurrentY;
-        int endX = startX + dirX * distance;
-        int endY = startY + dirY * distance;
-
-        DrawLine(startX, startY, endX, endY);
-
-        // Actualizar posición del pincel
-        brush
-.CurrentX = endX;
-        brush
-.CurrentY = endY;
-    }
-
-    private void DrawLine(int x0, int y0, int x1, int y1)
-    {
-        // Implementación del algoritmo de Bresenham
-        int dx = Mathf.Abs(x1 - x0);
-        int dy = Mathf.Abs(y1 - y0);
-        int sx = x0 < x1 ? 1 : -1;
-        int sy = y0 < y1 ? 1 : -1;
-        int err = dx - dy;
-
-        while (true)
-        {
-            DrawPixelWithBrushSize(x0, y0);
-
-            if (x0 == x1 && y0 == y1) break;
-
-            int e2 = 2 * err;
-            if (e2 > -dy)
-            {
-                err -= dy;
-                x0 += sx;
-            }
-            if (e2 < dx)
-            {
-                err += dx;
-                y0 += sy;
-            }
-        }
-    }
-
-    private void DrawPixelWithBrushSize(int x, int y)
-    {
-        if (brush.Color == "Transparent") return;
-
-        Color color = StringToColor(brush.Color);
-        int halfSize = brush.Size / 2;
-
-        for (int i = -halfSize; i <= halfSize; i++)
-        {
-            for (int j = -halfSize; j <= halfSize; j++)
-            {
-                int pixelX = x + i;
-                int pixelY = y + j;
-
-                if (pixelX >= 0 && pixelY >= 0 &&
-                    pixelX < canvasManager.canvasSize &&
-                    pixelY < canvasManager.canvasSize)
-                {
-                canvasManager.SetPixelDirect(pixelX, pixelY, color);
-                }
-            }
-        }
-    }
-    private Color StringToColor(string colorName)
-    {
-        switch (colorName.ToLower())
-        {
-            case "red": return Color.red;
-            case "blue": return Color.blue;
-            case "green": return Color.green;
-            case "yellow": return Color.yellow;
-            case "orange": return new Color(1f, 0.5f, 0f);
-            case "purple": return new Color(0.5f, 0f, 0.5f);
-            case "black": return Color.black;
-            case "white": return Color.white;
-            case "transparent": return new Color(0, 0, 0, 0);
-            default: return Color.magenta;
-        }
-    }
-
     private object EvaluateExpression(ASTNode node)
     {
+
         switch (node)
         {
-            case NumberNode num:
-                return num.Number;
+            case NumberNode num: return num.Number;
+
+            case StringLiteralNode str: return str.Value;
 
             case VariableNode var:
-                return variables.ContainsKey(var.Variable) ? variables[var.Variable] : 0;
+                if (variables.ContainsKey(var.Variable))
+                    return variables[var.Variable];
+                throw new Exception($"Variable no definida: {var.Variable}");
 
             case BinaryOpNode binOp:
-                dynamic left = EvaluateExpression(binOp.Left);
-                dynamic right = EvaluateExpression(binOp.Right);
+                var leftNode = EvaluateExpression(binOp.Left);
+                var rightNode = EvaluateExpression(binOp.Right);
+                return EvaluateBinaryOp(binOp.Operator, leftNode, rightNode);
 
-                switch (binOp.Operator)
-                {
-                    case "+": return left + right;
-                    case "-": return left - right;
-                    case "*": return left * right;
-                    case "/": return left / right;
-                    case "%": return left % right;
-                    case "**": return Mathf.Pow(left, right);
-                    default: return 0;
-                }
+            case BooleanOpNode boolOp:
+                var left = Convert.ToBoolean(EvaluateExpression(boolOp.Left));
+                var right = Convert.ToBoolean(EvaluateExpression(boolOp.Right));
+                return EvaluateBooleanOp(boolOp.Operator, left, right);
 
-            /* case FunctionNode func:
-                return ExecuteFunction(func); */
+            case FunctionNode func:
+                return EvaluateFunction(func);
 
             default:
-                return 0;
+                throw new Exception($"Unsupported expression type: {node.GetType().Name}");
         }
     }
-    
+
+
+    private object EvaluateFunction(FunctionNode func)
+    {
+        List<object> evaluatedParams = new List<object>();
+        foreach (var param in func.Parameters)
+        {
+            evaluatedParams.Add(EvaluateExpression(param));
+        }
+        object[] parameters = evaluatedParams.ToArray();
+
+        switch (func.Name)
+        {
+            case "GetActualX":
+                return brush.CurrentX;
+
+            case "GetActualY":
+                return brush.CurrentY;
+
+            case "GetCanvasSize":
+                return canvasManager.canvasSize;
+
+            case "IsBrushColor":
+                return (string)parameters[0] == brush.Color ? 1 : 0;
+
+            case "IsCanvasColor":
+                int checkX = brush.CurrentX + (int)parameters[1];
+                int checkY = brush.CurrentY + (int)parameters[2];
+
+                string pixelColor = canvasManager.GetPixelColor(checkX, checkY);
+
+                return pixelColor == (string)parameters[0] ? 1 : 0;
+            case "IsBrushSize":
+                int size = brush.Size == (int)parameters[0] ? 1 : 0;
+                return brush.Size == (int)parameters[0] ? 1 : 0;
+
+            case "GetColorCount":
+                int count = EvaluateGetColorCount((string)parameters[0], (int)parameters[1],
+                                            (int)parameters[2], (int)parameters[3], (int)parameters[4]);
+                Debug.Log("Color count " + count);
+                return count;
+
+
+            default:
+                throw new Exception($"Función no reconocida: {func.Name}");
+        }
+    }
+    private object EvaluateBinaryOp(string op, object left, object right)
+    {
+
+        if (left is FunctionNode leftFunc)
+        {
+            EvaluateFunction(leftFunc);
+
+        }
+        if (right is FunctionNode rightFunc)
+        {
+            EvaluateFunction(rightFunc);
+        }
+        if (left is int leftInt && right is int rightInt)
+        {
+            return op switch
+            {
+                "+" => leftInt + rightInt,
+                "-" => leftInt - rightInt,
+                "*" => leftInt * rightInt,
+                "/" => leftInt / rightInt,
+                "**" => Math.Pow(leftInt, rightInt),
+                "%" => leftInt % rightInt,
+                _ => throw new Exception($"Unsupported operator: {op}")
+            };
+        }
+        if (right is BinaryOpNode binOp)
+        {
+            return EvaluateBinaryOp(op, left, EvaluateExpression(binOp.Left));
+        }
+        else
+            throw new Exception("Operación binaria requiere operandos enteros");
+    }
+    private bool EvaluateBooleanOp(string op, object left, object right)
+    {
+
+        if (left is bool leftBool && right is bool rightBool)
+        {
+            return op switch
+            {
+                "&&" => leftBool && rightBool,
+                "||" => leftBool || rightBool,
+                "==" => leftBool == rightBool,
+                _ => throw new Exception($"Unsupported boolean operator(Bool) : {op}")
+            };
+        }
+        else if (left is int leftInt && right is int rightInt)
+        {
+            return op switch
+            {
+                "<" => leftInt < rightInt,
+                ">" => leftInt > rightInt,
+                "<=" => leftInt <= rightInt,
+                ">=" => leftInt >= rightInt,
+                _ => throw new Exception($"Unsupported boolean operator(Comparation): {op}")
+            };
+        }
+        else
+        {
+            throw new Exception($"(Excepcion): {op}");
+        }
+
+    }
+    private int EvaluateGetColorCount(string color, int x1, int y1, int x2, int y2)
+    {
+        int canvasSize = canvasManager.canvasSize;
+
+
+        int minX = Math.Min(x1, x2);
+        int maxX = Math.Max(x1, x2);
+        int minY = Math.Min(y1, y2);
+        int maxY = Math.Max(y1, y2);
+
+        if (minX >= canvasSize || maxX < 0 || minY >= canvasSize || maxY < 0)
+        {
+            return 0;
+        }
+
+        int count = 0;
+
+        for (int y = minY; y <= maxY; y++)
+        {
+            for (int x = minX; x <= maxX; x++)
+            {
+                if (canvasManager.GetPixelColor(x, y) == color)
+                {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+    private void EvaluateDrawCommand(DrawCommandNode drawCmd)
+    {
+        if (drawCmd.Name == "DrawLine")
+        {
+            int dirX = (int)EvaluateExpression(drawCmd.Parameters[0]);
+            int dirY = (int)EvaluateExpression(drawCmd.Parameters[1]);
+            int distance = (int)EvaluateExpression(drawCmd.Parameters[2]);
+
+            int endX = brush.CurrentX + dirX * distance;
+            int endY = brush.CurrentY + dirY * distance;
+
+            drawingEngine.DrawLine(
+                brush.CurrentX,
+                brush.CurrentY,
+                endX,
+                endY,
+                brush.Color,
+                brush.Size
+            );
+
+            brush.CurrentX = endX;
+            brush.CurrentY = endY;
+            drawingEngine.UpdateTexture(canvasManager.canvasTexture);
+        }
+        if (drawCmd.Name == "DrawCircle")
+        {
+            int dirX = (int)EvaluateExpression(drawCmd.Parameters[0]);
+            int dirY = (int)EvaluateExpression(drawCmd.Parameters[1]);
+            int radio = (int)EvaluateExpression(drawCmd.Parameters[2]);
+            int endX = brush.CurrentX + dirX * radio;
+            int endY = brush.CurrentY + dirY * radio;
+            drawingEngine.DrawCircle(
+                brush.CurrentX,
+                brush.CurrentY,
+                radio,
+                brush.Color,
+                brush.Size
+            );
+        
+            brush.CurrentX = endX;
+            brush.CurrentY = endY;
+            drawingEngine.UpdateTexture(canvasManager.canvasTexture);
+        }
+    }
 }
-                
+        
+
+

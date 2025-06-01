@@ -13,19 +13,33 @@ public class CanvasManager : MonoBehaviour
     public Button confirmButton;
     public RawImage canvasDisplay;
     public int canvasSize;
-    private Texture2D canvasTexture;
+    public Texture2D canvasTexture;
+    public Color[,] pixels;
+    private readonly Dictionary<Color, string> colorMap = new()
+    {
+        [Color.red] = "Red",
+        [Color.blue] = "Blue",
+        [Color.green] = "Green",
+        [Color.yellow] = "Yellow",
+        [new Color(1f, 0.65f, 0f)] = "Orange",  
 
+        [new Color(0.5f, 0f, 0.5f)] = "Purple", 
+        [Color.black] = "Black",
+        [Color.white] = "White",
+        [new Color(0f, 0f, 0f, 0f)] = "Transparent"
+    };
     public TMP_Text errorText;
 
-    void Start(){
+    void Start()
+    {
         InitializeCanvas(100);
-        sizeInput.interactable=false;
-        confirmButton.interactable=false;
+        sizeInput.interactable = false;
+        confirmButton.interactable = false;
         confirmButton.onClick.AddListener(OnConfirmResize);
-        PaintTestPixel();
     }
 
-   private void InitializeCanvas(int newSize) {
+    private void InitializeCanvas(int newSize)
+    {
         canvasSize = newSize;
         canvasTexture = new Texture2D(canvasSize, canvasSize, TextureFormat.RGBA32, false);
         canvasTexture.filterMode = FilterMode.Point; // ¡Importante para píxeles nítidos!
@@ -34,47 +48,50 @@ public class CanvasManager : MonoBehaviour
     }
 
     // Borra el lienzo (píxeles blancos)
-    public void ClearCanvas() {
+    public void ClearCanvas()
+    {
         Color[] pixels = new Color[canvasSize * canvasSize];
-        for (int i = 0; i < pixels.Length; i++) {
+        for (int i = 0; i < pixels.Length; i++)
+        {
             pixels[i] = Color.white;
         }
         canvasTexture.SetPixels(pixels);
         canvasTexture.Apply();
     }
-    // Llamado por el botón de redimensión
-    public void OnResizeButtonClick() {
-        sizeInput.interactable=true;
-        confirmButton.interactable=true; 
+    public void OnResizeButtonClick()
+    {
+        sizeInput.interactable = true;
+        confirmButton.interactable = true;
         sizeInput.text = canvasSize.ToString(); // Mostrar tamaño actual
     }
-     public void OnConfirmResize() {
-        if (int.TryParse(sizeInput.text, out int newSize)) {
+    public void OnConfirmResize()
+    {
+        if (int.TryParse(sizeInput.text, out int newSize))
+        {
             newSize = Mathf.Clamp(newSize, 1, 512);
             InitializeCanvas(newSize);
-            sizeInput.interactable=false; // Ocultar panel
-            confirmButton.interactable=false; // Ocultar botón
-        } else {
+            sizeInput.interactable = false; // Ocultar panel
+            confirmButton.interactable = false; // Ocultar botón
+        }
+        else
+        {
             errorText.text = "El tamaño introducido no es válido, por favor vuelva a introducir un tamaño válido";
         }
     }
-
-    private void PaintTestPixel() {
-        SetPixel(0, 0, Color.red);
-        SetPixel(canvasSize-1, canvasSize-1, Color.blue);
-
-    }
-    public void SetPixelDirect(int x, int y, Color color)
+   public string GetPixelColor(int x, int y)
     {
-        if (x < 0 || y < 0 || x >=canvasSize || y >= canvasSize) return;
-        canvasTexture.SetPixel(x, y, color);
-    }
+        if (x < 0 || x >= canvasSize || y < 0 || y >= canvasSize)
+            return "OutOfBounds";
 
-    // Método para pintar un píxel
-    public void SetPixel(int x, int y, Color color)
-    {
-        if (x < 0 || y < 0 || x >= canvasSize || y >= canvasSize) return;
-        canvasTexture.SetPixel(x, y, color);
-        canvasTexture.Apply();
+        Color pixelColor = canvasTexture.GetPixel(x, y);
+        
+        foreach (var kvp in colorMap)
+        {
+            if (pixelColor == kvp.Key)
+            {
+                return kvp.Value;
+            }
+        }        
+        return "Unknown";
     }
 }

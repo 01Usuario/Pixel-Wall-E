@@ -11,6 +11,9 @@ public interface IASTValidator<T> where T : ASTNode
 public class SemanticContext
 {
     public Brush Brush { get; } = new Brush();
+    public readonly HashSet<string> validColors = new HashSet<string>{
+         "Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Black", "White", "Transparent" 
+     };
     public HashSet<string> Variables { get; } = new HashSet<string>();
     public Dictionary<string, System.Type> VariableTypes { get; } = new Dictionary<string, System.Type>();
     public HashSet<string> Labels { get; } = new HashSet<string>();
@@ -82,13 +85,10 @@ public class SpawnValidator : IASTValidator<SpawnNode>,IASTValidator<ProgramNode
 }
 public class ColorValidator : IASTValidator<ColorNode> 
 {
-     private static readonly HashSet<string> validColors = new HashSet<string>{
-         "Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Black", "White", "Transparent" 
-     };
-
+     
     public void Validate(ColorNode node, SemanticContext context)
     {
-        if (!validColors.Contains(node.Color))
+        if (!context.validColors.Contains(node.Color))
         {
             context.AddError("Color inválido " + node.Color);
 
@@ -279,65 +279,64 @@ public class DrawCommandValidator : IASTValidator<DrawCommandNode>
         { "IsBrushColor", new FunctionInspector(1, new List<System.Type> { typeof(string) }) },
         { "IsBrushSize", new FunctionInspector(1, new List<System.Type> { typeof(int) }) },
         { "IsCanvasColor", new FunctionInspector(3, new List<System.Type> { typeof(string), typeof(int), typeof(int) }) }
+        
     };
 
-        public void Validate(FunctionNode node, SemanticContext context)
+    public void Validate(FunctionNode node, SemanticContext context)
+    {
+        if (!_validFunctions.ContainsKey(node.Name))
         {
-            if (!_validFunctions.ContainsKey(node.Name))
-            {
-                context.AddError($"Función no reconocida: '{node.Name}'.");
-                return;
-            }
-            var spec = _validFunctions[node.Name];
-            if (node.Parameters.Count != spec.ExpectedParamCount)
+            context.AddError($"Función no reconocida: '{node.Name}'.");
+            return;
+        }
+        var spec = _validFunctions[node.Name];
+        if (node.Parameters.Count != spec.ExpectedParamCount)
+        {
+            context.AddError(
+                $"{node.Name} requiere {spec.ExpectedParamCount} parámetros. " +
+                $"Se proporcionaron {node.Parameters.Count}."
+            );
+            return;
+        }
+
+        for (int i = 0; i < node.Parameters.Count; i++)
+        {
+            ASTNode param = node.Parameters[i];
+            System.Type expectedType = spec.ExpectedParamTypes[i];
+
+            if (expectedType == typeof(string) && !(param is VariableNode))
             {
                 context.AddError(
-                    $"{node.Name} requiere {spec.ExpectedParamCount} parámetros. " +
-                    $"Se proporcionaron {node.Parameters.Count}."
+                    $"Parámetro {i + 1} de {node.Name} debe ser un string. " +
+                    $"Se recibió: {param.GetType().Name}."
                 );
-                return;
             }
 
-            // Validar tipo de cada parámetro
-            for (int i = 0; i < node.Parameters.Count; i++)
+            if (expectedType == typeof(int) && !IsNumericNode(param))
             {
-                ASTNode param = node.Parameters[i];
-                System.Type expectedType = spec.ExpectedParamTypes[i];
-
-                // Caso 1: Parámetro es un string (ej: color)
-                if (expectedType == typeof(string) && !(param is VariableNode))
-                {
-                    context.AddError(
-                        $"Parámetro {i + 1} de {node.Name} debe ser un string. " +
-                        $"Se recibió: {param.GetType().Name}."
-                    );
-                }
-
-                // Caso 2: Parámetro es un número (ej: coordenadas)
-                if (expectedType == typeof(int) && !IsNumericNode(param))
-                {
-                    context.AddError(
-                        $"Parámetro {i + 1} de {node.Name} debe ser numérico. " +
-                        $"Se recibió: {param.GetType().Name}."
-                    );
-                }
-                if (expectedType == typeof(string) && !(param is StringLiteralNode || param is VariableNode))
-                {
-                    context.AddError($"Parámetro {i + 1} debe ser un string literal o variable.");
-                }
+                context.AddError(
+                    $"Parámetro {i + 1} de {node.Name} debe ser numérico. " +
+                    $"Se recibió: {param.GetType().Name}."
+                );
             }
-
-            if (node.Name == "IsCanvasColor" && node.Parameters[0] is StringLiteralNode colorVar)
+            if (expectedType == typeof(string) && !(param is StringLiteralNode || param is VariableNode))
             {
-                if (!context.Variables.Contains(colorVar.Value))
-                {
-                    context.AddError(
-                        $"Color no declarado: '{colorVar.Value}'. " +
-                        "Los colores deben ser variables predefinidas."
-                    );
-                }
+                context.AddError($"Parámetro {i + 1} debe ser un string literal o variable.");
             }
         }
+
+        if (node.Name == "IsCanvasColor" && node.Parameters[0] is StringLiteralNode colorVar)
+        {
+            if (!context.Variables.Contains(colorVar.Value))
+            {
+                context.AddError(
+                    $"Color no declarado: '{colorVar.Value}'. " +
+                    "Los colores deben ser variables predefinidas."
+                );
+            }
+        }
+        
+    }
 
         private bool IsNumericNode(ASTNode node)
         {
