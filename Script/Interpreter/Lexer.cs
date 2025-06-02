@@ -39,8 +39,7 @@ public class Lexer
     private readonly HashSet<string> DrawingCommands = new HashSet<string> {
     "DrawLine", "DrawCircle", "DrawRectangle"
     };  
-
-    private readonly HashSet<string> identifiersDeclared = new HashSet<string> ();
+    private readonly HashSet<string> identifiersDeclared = new HashSet<string>();
     private readonly HashSet<string> labelDeclared = new HashSet<string> ();
 
     private int openParentheses = 0;

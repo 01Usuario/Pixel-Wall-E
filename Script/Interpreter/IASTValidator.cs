@@ -107,7 +107,6 @@ public class SizeValidator : IASTValidator<SizeNode>
 
     public void Validate(SizeNode node, SemanticContext context)
     {
-        int adjustedSize = node.Size;
         if (node.Size <= 0)
         {
             context.AddError($"El tamaño debe ser un entero positivo: {node.Size}.");
@@ -119,10 +118,10 @@ public class SizeValidator : IASTValidator<SizeNode>
         }
         if (node.Size % 2 == 0)
         {
-            adjustedSize = Math.Max(node.Size - 1,1);
-            context.AddWarning($"Tamaño ajustado a {adjustedSize}. Use números impares.");
+            node.Size -= 1;
+            context.AddWarning($"Tamaño ajustado a {node.Size}. Use números impares.");
         }
-        context.Brush.Size = adjustedSize;
+        context.Brush.Size = node.Size;
     }
 }
 
@@ -304,7 +303,7 @@ public class DrawCommandValidator : IASTValidator<DrawCommandNode>
             ASTNode param = node.Parameters[i];
             System.Type expectedType = spec.ExpectedParamTypes[i];
 
-            if (expectedType == typeof(string) && !(param is VariableNode))
+            if (expectedType == typeof(string) && !(param is VariableNode)||!(param is StringLiteralNode))
             {
                 context.AddError(
                     $"Parámetro {i + 1} de {node.Name} debe ser un string. " +

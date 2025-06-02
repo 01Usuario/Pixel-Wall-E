@@ -247,28 +247,30 @@ public class Evaluator
     }
     private void EvaluateDrawCommand(DrawCommandNode drawCmd)
     {
+        if (brush.Color == "Transparent")
+            return;
         if (drawCmd.Name == "DrawLine")
-        {
-            int dirX = (int)EvaluateExpression(drawCmd.Parameters[0]);
-            int dirY = (int)EvaluateExpression(drawCmd.Parameters[1]);
-            int distance = (int)EvaluateExpression(drawCmd.Parameters[2]);
+            {
+                int dirX = (int)EvaluateExpression(drawCmd.Parameters[0]);
+                int dirY = (int)EvaluateExpression(drawCmd.Parameters[1]);
+                int distance = (int)EvaluateExpression(drawCmd.Parameters[2]);
 
-            int endX = brush.CurrentX + dirX * distance;
-            int endY = brush.CurrentY + dirY * distance;
+                int endX = brush.CurrentX + dirX * distance;
+                int endY = brush.CurrentY + dirY * distance;
 
-            drawingEngine.DrawLine(
-                brush.CurrentX,
-                brush.CurrentY,
-                endX,
-                endY,
-                brush.Color,
-                brush.Size
-            );
+                drawingEngine.DrawLine(
+                    brush.CurrentX,
+                    brush.CurrentY,
+                    endX,
+                    endY,
+                    brush.Color,
+                    brush.Size
+                );
 
-            brush.CurrentX = endX;
-            brush.CurrentY = endY;
-            drawingEngine.UpdateTexture(canvasManager.canvasTexture);
-        }
+                brush.CurrentX = endX;
+                brush.CurrentY = endY;
+                drawingEngine.UpdateTexture(canvasManager.canvasTexture);
+            }
         if (drawCmd.Name == "DrawCircle")
         {
             int dirX = (int)EvaluateExpression(drawCmd.Parameters[0]);
@@ -283,13 +285,39 @@ public class Evaluator
                 brush.Color,
                 brush.Size
             );
-        
+
             brush.CurrentX = endX;
             brush.CurrentY = endY;
             drawingEngine.UpdateTexture(canvasManager.canvasTexture);
         }
+        if (drawCmd.Name == "DrawRectangle")
+        {
+            int dirX = (int)EvaluateExpression(drawCmd.Parameters[0]);
+            int dirY = (int)EvaluateExpression(drawCmd.Parameters[1]);
+            int distance = (int)EvaluateExpression(drawCmd.Parameters[2]);
+            int width = (int)EvaluateExpression(drawCmd.Parameters[3]);
+            int height = (int)EvaluateExpression(drawCmd.Parameters[4]);
+
+            drawingEngine.DrawRectangle(
+                brush.CurrentX,
+                brush.CurrentY,
+                dirX,
+                dirY,
+                distance,
+                width,
+                height,
+                brush.Color,
+                brush.Size
+            );
+            // Actualizar posición (centro del rectángulo)
+            brush.CurrentX += dirX * distance;
+            brush.CurrentY += dirY * distance;
+            drawingEngine.UpdateTexture(canvasManager.canvasTexture);
+
+        }
     }
 }
+
         
 
 

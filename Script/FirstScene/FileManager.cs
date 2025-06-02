@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -35,65 +34,68 @@ public class FileManager : MonoBehaviour
         File.WriteAllText(path, content.text+" ");
     }
 
-        public void Evaluate()
+    public void Evaluate()
+    {
+        string code = content.text;
+        try
         {
-            string code = content.text;
-            try
-            {
-            DrawingEngine drawingEngine = new DrawingEngine(canvasManager.canvasSize);
-                // 1. Tokenizar y Parsear
             Lexer lexer = new Lexer(code);
-                List<Token> tokens = lexer.Tokenize();
-                foreach (Token token in tokens)
-                {
-                    Debug.Log("Valor: " + token.Value+", Tipo: " + token.Type);
-                }
-                Parser parser = new Parser(tokens);
-                ProgramNode program = parser.ParseProgram(tokens);
-                foreach (ASTNode instruction in program.Instructions)
-                {
-                    Debug.Log("Instrucción: " + instruction.GetType());
-                }
-                // 2. Validación Semántica
-                SemanticContext context = new SemanticContext
-                {
-                    CanvasSize = canvasManager.canvasSize // Obtener tamaño actual del canvas
-                };
-                context.AddAllLabelsed(program, context.Labels);
-                ValidatorRunner validator = new ValidatorRunner(context.CanvasSize);
-                validator.Validate(program, context); 
-           
-                if (context.Errors.Count > 0)
-                {
-                    errorText.text = string.Join( "\n", context.Errors);
-                    errorText.color = Color.red;
-                    return; 
-                }
+            List<Token> tokens = lexer.Tokenize();
+            
+            foreach (Token token in tokens)
+            {
+                Debug.Log("Valor: " + token.Value + ", Tipo: " + token.Type);
+            }
+            Parser parser = new Parser(tokens);
+            ProgramNode program = parser.ParseProgram(tokens);
+
+            foreach (ASTNode instruction in program.Instructions)
+            {
+                Debug.Log("Instrucción: " + instruction.GetType());
+            }
+            SemanticContext context = new SemanticContext
+            {
+                CanvasSize = canvasManager.canvasSize 
+            };
+            context.AddAllLabelsed(program, context.Labels);
+            ValidatorRunner validator = new ValidatorRunner(context.CanvasSize);
+            validator.Validate(program, context); 
+        
+            if (context.Errors.Count > 0)
+            {
+                errorText.text = string.Join( "\n", context.Errors);
+                errorText.color = Color.red;
+                return; 
+            }
 
             if (context.Warnings.Count > 0)
             {
-                errorText.text = string.Join("\n", context.Warnings) + "\n!! Compilado con advertencias !!";
+                errorText.text = string.Join("\n", context.Warnings, "Complinado correctamente con advertencias");
                 errorText.color = Color.yellow;
             }
-            else
-            {
-                errorText.text = "!! Compilado correctamente !!";
+            else {
+                errorText.text ="!! Compilado correctamente !!";
                 errorText.color = Color.green;
-                Evaluator evaluator = new Evaluator(canvasManager, drawingEngine);
-                evaluator.Evaluate(program);
-            }
+            } 
+            drawingEngine=new DrawingEngine(canvasManager.canvasSize);
+            Evaluator evaluator = new Evaluator(canvasManager, drawingEngine);
+            evaluator.Evaluate(program);
+            drawingEngine.UpdateTexture(canvasManager.canvasTexture);
 
-            }
-            catch (System.Exception e)
-            {
-                errorText.text = $"Error: {e.Message}";
-                Debug.LogError($"Error: {e.Message}");
-                errorText.color = Color.red;
-            }
+        
+
         }
+        catch (System.Exception e)
+        {
+            errorText.text = $"Error: {e.Message}";
+            Debug.LogError($"Error: {e.Message}");
+            errorText.color = Color.red;
+        }
+    }
 
     
-     private string GetFileBrowserPath(bool isLoad) {
+     private string GetFileBrowserPath(bool isLoad)
+    {
         #if UNITY_EDITOR
             if (isLoad) {
                 return UnityEditor.EditorUtility.OpenFilePanel("Cargar código", "", "pw");

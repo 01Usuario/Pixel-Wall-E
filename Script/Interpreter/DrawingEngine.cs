@@ -45,53 +45,48 @@ public class DrawingEngine
         texture.SetPixels(flatPixels);
         texture.Apply();
     }
-        public void DrawLine(int startX, int startY, int endX, int endY, string colorName, int brushSize)
+    public void DrawLine(int startX, int startY, int endX, int endY, string colorName, int brushSize)
+    {
+        if (!colorMap.TryGetValue(colorName, out Color color))
         {
-            // 1. Obtener el color
-            if (!colorMap.TryGetValue(colorName, out Color color))
+            Debug.LogError($"Color desconocido: {colorName}");
+            return;
+        }
+
+        // 2. Aplicar algoritmo de Bresenham
+        int dx = Mathf.Abs(endX - startX);
+        int dy = Mathf.Abs(endY - startY);
+        int sx = startX < endX ? 1 : -1;
+        int sy = startY < endY ? 1 : -1;
+        int err = dx - dy;
+        int currentX = startX;
+        int currentY = startY;
+
+        while (true)
+        {
+            DrawBrushAt(currentX, currentY, color, brushSize);
+            if (currentX == endX && currentY == endY) break;
+
+            int e2 = 2 * err;
+            if (e2 > -dy)
             {
-                Debug.LogError($"Color desconocido: {colorName}");
-                return;
+                err -= dy;
+                currentX += sx;
             }
-
-            // 2. Aplicar algoritmo de Bresenham
-            int dx = Mathf.Abs(endX - startX);
-            int dy = Mathf.Abs(endY - startY);
-            int sx = startX < endX ? 1 : -1;
-            int sy = startY < endY ? 1 : -1;
-            int err = dx - dy;
-            int currentX = startX;
-            int currentY = startY;
-
-            while (true)
+            if (e2 < dx)
             {
-                // 3. Dibujar el pincel en la posición actual
-                DrawBrushAt(currentX, currentY, color, brushSize);
-
-                // 4. Terminar cuando llegamos al punto final
-                if (currentX == endX && currentY == endY) break;
-
-                // 5. Calcular siguiente punto
-                int e2 = 2 * err;
-                if (e2 > -dy)
-                {
-                    err -= dy;
-                    currentX += sx;
-                }
-                if (e2 < dx)
-                {
-                    err += dx;
-                    currentY += sy;
-                }
+                err += dx;
+                currentY += sy;
             }
         }
+    }
     public void DrawCircle(int centerX, int centerY, int radius, string colorName, int brushSize)
     {
         if (!colorMap.TryGetValue(colorName, out Color color))
-            {
-                Debug.LogError($"Color desconocido: {colorName}");
-                return;
-            }
+        {
+            Debug.LogError($"Color desconocido: {colorName}");
+            return;
+        }
 
         int x = radius;
         int y = 0;
@@ -116,24 +111,49 @@ public class DrawingEngine
                 err += 1 - 2*x;
             }
         }
-        }
+    }
+    public void DrawRectangle(int startX, int startY, int dirX, int dirY, int distance, int width, int height, string colorName, int brushSize)
+    {
+        Debug.Log("Evaluando DrawRectangle");
+        // Calcular centro del rectángulo
+        int centerX = startX + dirX * distance;
+        int centerY = startY + dirY * distance;
+        
+        // Dibujar contorno
+        DrawRectangle(centerX, centerY, width, height, colorName, brushSize);
+    }
+    public void DrawRectangle(int centerX, int centerY, int width, int height, string colorName, int brushSize)
+    {
+    
+    // Calcular esquinas del rectángulo
+        int left = centerX - width / 2;
+        int right = centerX + width / 2;
+        int top = centerY - height / 2;
+        int bottom = centerY + height / 2;
+        Debug.Log("Dibujando Rectángulo");
+        // Dibujar los 4 lados
+        DrawLine(left, top, right, top, colorName, brushSize);     // Línea superior
+        DrawLine(right, top, right, bottom, colorName, brushSize); // Línea derecha
+        DrawLine(right, bottom, left, bottom, colorName, brushSize); // Línea inferior
+        DrawLine(left, bottom, left, top, colorName, brushSize);   // Línea izquierda
+    }
 
-            private void DrawBrushAt(int centerX, int centerY, Color color, int brushSize)
+    private void DrawBrushAt(int centerX, int centerY, Color color, int brushSize)
+    {
+        int halfSize = brushSize / 2;
+
+        for (int xOffset = -halfSize; xOffset <= halfSize; xOffset++)
         {
-            int halfSize = brushSize / 2;
-
-            for (int xOffset = -halfSize; xOffset <= halfSize; xOffset++)
+            for (int yOffset = -halfSize; yOffset <= halfSize; yOffset++)
             {
-                for (int yOffset = -halfSize; yOffset <= halfSize; yOffset++)
-                {
-                    int x = centerX + xOffset;
-                    int y = centerY + yOffset;
+                int x = centerX + xOffset;
+                int y = centerY + yOffset;
 
-                    if (x >= 0 && x < canvasSize && y >= 0 && y < canvasSize)
-                    {
-                        pixels[x, y] = color;
-                    }
+                if (x >= 0 && x < canvasSize && y >= 0 && y < canvasSize)
+                {
+                    pixels[x, y] = color;
                 }
             }
         }
     }
+}

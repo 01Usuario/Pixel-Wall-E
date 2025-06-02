@@ -156,7 +156,13 @@ public class Parser
         else if (CurrentToken().Type == TokenType.Number)
         {
            return ParseNumber();
-        }   
+        } 
+        if (CurrentToken().Type == TokenType.StringLiteral)
+        {
+            string colorValue = CurrentToken().Value;
+            ConsumeToken();
+            return new StringLiteralNode(colorValue);
+        }  
         else if (CurrentToken().Type == TokenType.Function)
         {
             return ParseFunction();
