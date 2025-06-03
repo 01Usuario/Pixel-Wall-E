@@ -81,9 +81,6 @@ public class FileManager : MonoBehaviour
             Evaluator evaluator = new Evaluator(canvasManager, drawingEngine);
             evaluator.Evaluate(program);
             drawingEngine.UpdateTexture(canvasManager.canvasTexture);
-
-        
-
         }
         catch (System.Exception e)
         {

@@ -149,7 +149,7 @@ public class Parser
 
         Token token = CurrentToken();
 
-        if (CurrentToken().Type == TokenType.Identifier || CurrentToken().Type==TokenType.StringLiteral)
+        if (CurrentToken().Type == TokenType.Identifier )
         {
             return ParseVariable();
         }
@@ -247,7 +247,7 @@ private bool IsBooleanOperator(string op)
     ConsumeToken();
 
     ASTNode expr = ParseExpression();
-
+    
 
     return new AssignNode(variable, expr);
 } 

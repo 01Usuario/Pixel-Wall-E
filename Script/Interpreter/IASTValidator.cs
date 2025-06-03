@@ -12,7 +12,7 @@ public class SemanticContext
 {
     public Brush Brush { get; } = new Brush();
     public readonly HashSet<string> validColors = new HashSet<string>{
-         "Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Black", "White", "Transparent" 
+         "Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Black", "White", "Transparent"
      };
     public HashSet<string> Variables { get; } = new HashSet<string>();
     public Dictionary<string, System.Type> VariableTypes { get; } = new Dictionary<string, System.Type>();
@@ -36,6 +36,7 @@ public class SemanticContext
             }
         }
     }
+   
 }
 
 
@@ -280,6 +281,12 @@ public class DrawCommandValidator : IASTValidator<DrawCommandNode>
         { "IsCanvasColor", new FunctionInspector(3, new List<System.Type> { typeof(string), typeof(int), typeof(int) }) }
         
     };
+    private readonly HashSet<string> _colorFunctions = new HashSet<string>
+    {
+        "IsBrushColor",
+        "IsCanvasColor",
+        "GetColorCount"
+    };
 
     public void Validate(FunctionNode node, SemanticContext context)
     {
@@ -297,19 +304,18 @@ public class DrawCommandValidator : IASTValidator<DrawCommandNode>
             );
             return;
         }
+         if (_colorFunctions.Contains(node.Name) && node.Parameters.Count > 0)
+        {
+            ValidateColorParam(node.Parameters[0], context);
+        }
+
 
         for (int i = 0; i < node.Parameters.Count; i++)
         {
             ASTNode param = node.Parameters[i];
             System.Type expectedType = spec.ExpectedParamTypes[i];
 
-            if (expectedType == typeof(string) && !(param is VariableNode)||!(param is StringLiteralNode))
-            {
-                context.AddError(
-                    $"Parámetro {i + 1} de {node.Name} debe ser un string. " +
-                    $"Se recibió: {param.GetType().Name}."
-                );
-            }
+
 
             if (expectedType == typeof(int) && !IsNumericNode(param))
             {
@@ -324,35 +330,44 @@ public class DrawCommandValidator : IASTValidator<DrawCommandNode>
             }
         }
 
-        if (node.Name == "IsCanvasColor" && node.Parameters[0] is StringLiteralNode colorVar)
-        {
-            if (!context.Variables.Contains(colorVar.Value))
-            {
-                context.AddError(
-                    $"Color no declarado: '{colorVar.Value}'. " +
-                    "Los colores deben ser variables predefinidas."
-                );
-            }
-        }
-        
     }
-
         private bool IsNumericNode(ASTNode node)
         {
             return node is NumberNode || node is VariableNode || node is BinaryOpNode;
         }
-
-        private class FunctionInspector
+        private void ValidateColorParam(ASTNode param, SemanticContext context)
+    {
+        if (param is StringLiteralNode strNode)
         {
-            public int ExpectedParamCount { get; }
-            public List<System.Type> ExpectedParamTypes { get; }
-
-            public FunctionInspector(int count, List<System.Type> types)
+            if (!context.validColors.Contains(strNode.Value))
             {
-                ExpectedParamCount = count;
-                ExpectedParamTypes = types;
+                context.AddError($"Color no válido: '{strNode.Value}'. Use: {string.Join(", ", context.validColors)}");
             }
         }
+        else if (param is VariableNode varNode)
+        {
+            if (context.VariableTypes.TryGetValue(varNode.Variable, out var type))
+            {
+                if (type != typeof(string))
+                {
+                    context.AddError($"La variable '{varNode.Variable}' debe ser de tipo string (color)");
+                }
+            }
+        }
+}
+
+
+        private class FunctionInspector
+    {
+        public int ExpectedParamCount { get; }
+        public List<System.Type> ExpectedParamTypes { get; }
+
+        public FunctionInspector(int count, List<System.Type> types)
+        {
+            ExpectedParamCount = count;
+            ExpectedParamTypes = types;
+        }
+    }
     }
 
 public class GoToValidator : IASTValidator<GoToNode>
@@ -390,24 +405,22 @@ public class GoToValidator : IASTValidator<GoToNode>
 }
 
     public class VariableValidator : IASTValidator<VariableNode>
+    {
+        public void Validate(VariableNode node, SemanticContext context)
         {
-            public void Validate(VariableNode node, SemanticContext context)
-            {
-                context.Variables.Add(node.Variable);
-            }
+            context.Variables.Add(node.Variable);
         }
+    }
     public class LabelValidator : IASTValidator<LabelNode>
     {
         public void Validate(LabelNode node, SemanticContext context)
     {
-        if (context.Labels.Contains(node.Name))
-        {
-            context.AddWarning ($"Etiqueta duplicada: '{node.Name}', posible error de ambiguedad");
-        }
-        else
+        if (!context.Labels.Contains(node.Name))
         {
             context.Labels.Add(node.Name);
+
         }
+       
     }
     }
     public class AssignValidator : IASTValidator<AssignNode>
@@ -422,8 +435,12 @@ public class GoToValidator : IASTValidator<GoToNode>
             {
                 context.AddError("No hay nada que asignar");
             }
-            
+            if (node.Expression is StringLiteralNode strNode && context.validColors.Contains(strNode.Value))
+            {
+                context.VariableTypes[node.Variable] = typeof(string);
+            }
+
         }
-}
+    }
 
 

@@ -5,6 +5,8 @@ public class DrawingEngine
 {
     private int canvasSize;
     private Color[,] pixels;
+    private Color[] canvasPixels;
+
     private Dictionary<string, Color> colorMap = new()
     {
         ["Red"] = Color.red,
@@ -22,6 +24,7 @@ public class DrawingEngine
     {
         canvasSize = size;
         pixels = new Color[canvasSize, canvasSize];
+        canvasPixels = new Color[canvasSize * canvasSize];
         ClearCanvas();
     }
 
@@ -32,6 +35,52 @@ public class DrawingEngine
             {
                 pixels[x, y] = colorMap["White"];
             }
+    }
+     public void SetPixel(int x, int y, string colorName, int brushSize = 1)
+    {
+        // Convertir el nombre del color a Color de Unity
+        Color color = ConvertColorNameToColor(colorName);
+        
+        // Asegurarse que el tamaño del pincel sea impar
+        brushSize = brushSize % 2 == 0 ? brushSize - 1 : brushSize;
+        brushSize = Mathf.Max(1, brushSize);
+        
+        int halfSize = brushSize / 2;
+        
+        // Pintar todos los píxeles en el área del pincel
+        for (int i = -halfSize; i <= halfSize; i++)
+        {
+            for (int j = -halfSize; j <= halfSize; j++)
+            {
+                int targetX = x + i;
+                int targetY = y + j;
+                
+                if (IsInCanvasBounds(targetX, targetY))
+                {
+                    int pixelIndex = targetY * canvasSize + targetX;
+                    canvasPixels[pixelIndex] = color;
+                }
+            }
+        }
+    }
+    private bool IsInCanvasBounds(int x, int y)
+    {
+        return x >= 0 && x < canvasSize && y >= 0 && y < canvasSize;
+    }
+    private Color ConvertColorNameToColor(string colorName)
+    {
+        return colorName.ToLower() switch
+        {
+            "Red" => Color.red,
+            "Blue" => Color.blue,
+            "Green" => Color.green,
+            "Yellow" => Color.yellow,
+            "Orange" => new Color(1f, 0.5f, 0f),
+            "Purple" => new Color(0.5f, 0f, 0.5f),
+            "Black" => Color.black,
+            "White" => Color.white,
+            _ =>new Color(0f, 0f, 0f, 0f),
+        };
     }
 
     public void UpdateTexture(Texture2D texture)
