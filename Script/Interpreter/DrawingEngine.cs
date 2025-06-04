@@ -7,7 +7,7 @@ public class DrawingEngine
     private Color[,] pixels;
     private Color[] canvasPixels;
 
-    private Dictionary<string, Color> colorMap = new()
+    public Dictionary<string, Color> colorMap = new()
     {
         ["Red"] = Color.red,
         ["Blue"] = Color.blue,
@@ -35,52 +35,6 @@ public class DrawingEngine
             {
                 pixels[x, y] = colorMap["White"];
             }
-    }
-     public void SetPixel(int x, int y, string colorName, int brushSize = 1)
-    {
-        // Convertir el nombre del color a Color de Unity
-        Color color = ConvertColorNameToColor(colorName);
-        
-        // Asegurarse que el tamaño del pincel sea impar
-        brushSize = brushSize % 2 == 0 ? brushSize - 1 : brushSize;
-        brushSize = Mathf.Max(1, brushSize);
-        
-        int halfSize = brushSize / 2;
-        
-        // Pintar todos los píxeles en el área del pincel
-        for (int i = -halfSize; i <= halfSize; i++)
-        {
-            for (int j = -halfSize; j <= halfSize; j++)
-            {
-                int targetX = x + i;
-                int targetY = y + j;
-                
-                if (IsInCanvasBounds(targetX, targetY))
-                {
-                    int pixelIndex = targetY * canvasSize + targetX;
-                    canvasPixels[pixelIndex] = color;
-                }
-            }
-        }
-    }
-    private bool IsInCanvasBounds(int x, int y)
-    {
-        return x >= 0 && x < canvasSize && y >= 0 && y < canvasSize;
-    }
-    private Color ConvertColorNameToColor(string colorName)
-    {
-        return colorName.ToLower() switch
-        {
-            "Red" => Color.red,
-            "Blue" => Color.blue,
-            "Green" => Color.green,
-            "Yellow" => Color.yellow,
-            "Orange" => new Color(1f, 0.5f, 0f),
-            "Purple" => new Color(0.5f, 0f, 0.5f),
-            "Black" => Color.black,
-            "White" => Color.white,
-            _ =>new Color(0f, 0f, 0f, 0f),
-        };
     }
 
     public void UpdateTexture(Texture2D texture)
@@ -137,7 +91,7 @@ public class DrawingEngine
             return;
         }
 
-        int x = radius;
+        int x = radius+1;//No se por que, pero asi queda como en el del pdf
         int y = 0;
         int err = 0;
 
@@ -151,6 +105,7 @@ public class DrawingEngine
             DrawBrushAt(centerX - y, centerY - x, color, brushSize);
             DrawBrushAt(centerX + y, centerY - x, color, brushSize);
             DrawBrushAt(centerX + x, centerY - y, color, brushSize);
+            
 
             y++;
             err += 1 + 2*y;
@@ -180,14 +135,13 @@ public class DrawingEngine
         int top = centerY - height / 2;
         int bottom = centerY + height / 2;
         Debug.Log("Dibujando Rectángulo");
-        // Dibujar los 4 lados
         DrawLine(left, top, right, top, colorName, brushSize);     // Línea superior
         DrawLine(right, top, right, bottom, colorName, brushSize); // Línea derecha
         DrawLine(right, bottom, left, bottom, colorName, brushSize); // Línea inferior
         DrawLine(left, bottom, left, top, colorName, brushSize);   // Línea izquierda
     }
 
-    private void DrawBrushAt(int centerX, int centerY, Color color, int brushSize)
+   public void DrawBrushAt(int centerX, int centerY, Color color, int brushSize)
     {
         int halfSize = brushSize / 2;
 

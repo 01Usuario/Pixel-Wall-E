@@ -42,17 +42,9 @@ public class FileManager : MonoBehaviour
             Lexer lexer = new Lexer(code);
             List<Token> tokens = lexer.Tokenize();
             
-            foreach (Token token in tokens)
-            {
-                Debug.Log("Valor: " + token.Value + ", Tipo: " + token.Type);
-            }
             Parser parser = new Parser(tokens);
             ProgramNode program = parser.ParseProgram(tokens);
 
-            foreach (ASTNode instruction in program.Instructions)
-            {
-                Debug.Log("Instrucción: " + instruction.GetType());
-            }
             SemanticContext context = new SemanticContext
             {
                 CanvasSize = canvasManager.canvasSize 

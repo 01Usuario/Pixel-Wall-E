@@ -118,7 +118,7 @@ public class Evaluator
 
         switch (node)
         {
-            case NumberNode num: return num.Number;
+            case NumberNode num: return Convert.ToInt32(num.Number);;
 
             case StringLiteralNode str:
                 if (context.validColors.Contains(str.Value))
@@ -336,65 +336,7 @@ public class Evaluator
                 throw new Exception($"Función no reconocida: {func.Name}");
         }
     }
-    private object EvaluateBinaryOp(string op, object left, object right)
-    {
-
-        if (left is FunctionNode leftFunc)
-        {
-            EvaluateFunction(leftFunc);
-
-        }
-        if (right is FunctionNode rightFunc)
-        {
-            EvaluateFunction(rightFunc);
-        }
-        if (left is int leftInt && right is int rightInt)
-        {
-            return op switch
-            {
-                "+" => leftInt + rightInt,
-                "-" => leftInt - rightInt,
-                "*" => leftInt * rightInt,
-                "/" => leftInt / rightInt,
-                "**" => Math.Pow(leftInt, rightInt),
-                "%" => leftInt % rightInt,
-                _ => throw new Exception($"Operador desconocido: {op}")
-            };
-        }
-
-        else
-            throw new Exception("Operación binaria requiere operandos enteros");
-    }
-    private bool EvaluateBooleanOp(string op, object left, object right)
-    {
-
-        if (left is bool leftBool && right is bool rightBool)
-        {
-            return op switch
-            {
-                "&&" => leftBool && rightBool,
-                "||" => leftBool || rightBool,
-                "==" => leftBool == rightBool,
-                _ => throw new Exception($"Booleando Desconocido(Bool) : {op}")
-            };
-        }
-        else if (left is int leftInt && right is int rightInt)
-        {
-            return op switch
-            {
-                "<" => leftInt < rightInt,
-                ">" => leftInt > rightInt,
-                "<=" => leftInt <= rightInt,
-                ">=" => leftInt >= rightInt,
-                _ => throw new Exception($"Booleano desconocido(Comparation): {op}")
-            };
-        }
-        else
-        {
-            throw new Exception($"(Excepcion): {op}");
-        }
-
-    }
+    
     private int EvaluateGetColorCount(string color, int x1, int y1, int x2, int y2)
     {
         int canvasSize = canvasManager.canvasSize;
@@ -426,17 +368,20 @@ public class Evaluator
     }
     private void EvaluateDrawCommand(DrawCommandNode drawCmd)
     {
-        if (brush.Color == "Transparent")
-            return;
+        
         if (drawCmd.Name == "DrawLine")
         {
             int dirX = (int)EvaluateExpression(drawCmd.Parameters[0]);
             int dirY = (int)EvaluateExpression(drawCmd.Parameters[1]);
             int distance = (int)EvaluateExpression(drawCmd.Parameters[2]);
-
+            if(dirX>1 || dirX<-1 || dirY>1 || dirY<-1)
+            {
+                throw new Exception("Direcciones no válidas");
+            }
             int endX = brush.CurrentX + dirX * distance;
             int endY = brush.CurrentY + dirY * distance;
-
+        if (brush.Color == "Transparent")
+            return;
             drawingEngine.DrawLine(
                 brush.CurrentX,
                 brush.CurrentY,
@@ -457,6 +402,8 @@ public class Evaluator
             int radio = (int)EvaluateExpression(drawCmd.Parameters[2]);
             int endX = brush.CurrentX + dirX * radio;
             int endY = brush.CurrentY + dirY * radio;
+            if (brush.Color == "Transparent")
+            return;
             drawingEngine.DrawCircle(
                 brush.CurrentX,
                 brush.CurrentY,
@@ -488,7 +435,8 @@ public class Evaluator
                 brush.Color,
                 brush.Size
             );
-            // Actualizar posición (centro del rectángulo)
+            if (brush.Color == "Transparent")
+            return;
             brush.CurrentX += dirX * distance;
             brush.CurrentY += dirY * distance;
             drawingEngine.UpdateTexture(canvasManager.canvasTexture);
@@ -501,42 +449,68 @@ public class Evaluator
         {
             throw new Exception("No se puede usar Fill con color Transparent");
         }
+        Debug.Log($"Iniciando Fill en ({brush.CurrentX}, {brush.CurrentY})");
+        Debug.Log($"Color actual de la celda: {canvasManager.GetPixelColor(brush.CurrentX, brush.CurrentY)}");
+        Debug.Log($"Color de relleno de la brocha: {brush.Color}");
 
-        // Obtener el color objetivo (color en la posición actual)
         string targetColor = canvasManager.GetPixelColor(brush.CurrentX, brush.CurrentY);
 
-        // Si ya es del color de relleno, no hacer nada
         if (targetColor == brush.Color)
-            return;
+        {
 
-        // Implementar el algoritmo de flood fill
+            return;
+        }
+        Debug.Log("Iniciando relleno..., brush.Color: " + brush.Color);
+
         FloodFill(brush.CurrentX, brush.CurrentY, targetColor, brush.Color);
+        drawingEngine.UpdateTexture(canvasManager.canvasTexture);
+            Debug.Log("Relleno completado");
+
     }
 
-    private void FloodFill(int x, int y, string targetColor, string fillColor)
+    private void FloodFill(int startX, int startY, string targetColor, string fillColor)
     {
-        // Verificar límites del canvas
-        if (x < 0 || x >= canvasManager.canvasSize || y < 0 || y >= canvasManager.canvasSize)
-            return;
+        
+            Queue<(int x, int y)> pixels = new Queue<(int, int)>();
+            pixels.Enqueue((startX, startY));
 
-        // Verificar que el color actual es el que queremos reemplazar
-        if (canvasManager.GetPixelColor(x, y) != targetColor)
-            return;
+            HashSet<(int x, int y)> visited = new HashSet<(int, int)>();
+            int canvasSize = canvasManager.canvasSize;
 
-        // Pintar el pixel actual
-        drawingEngine.SetPixel(x, y, fillColor, brush.Size);
+            while (pixels.Count > 0)
+            {
+                var (x, y) = pixels.Dequeue();
 
-        // Llamadas recursivas a los 4 vecinos
-        FloodFill(x + 1, y, targetColor, fillColor); // Derecha
-        FloodFill(x - 1, y, targetColor, fillColor); // Izquierda
-        FloodFill(x, y + 1, targetColor, fillColor); // Arriba
-        FloodFill(x, y - 1, targetColor, fillColor); // Abajo
-    }
+                // Saltar si ya fue visitado
+                if (visited.Contains((x, y))) continue;
+                visited.Add((x, y));
+
+                // Verificar límites
+                if (x < 0 || x >= canvasSize || y < 0 || y >= canvasSize)
+                    continue;
+
+                // Obtener y comparar color
+                string currentColor = canvasManager.GetPixelColor(x, y);
+                if (!string.Equals(currentColor, targetColor, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+            Debug.Log("El fillcolor es"+ fillColor);
+                Color color = drawingEngine.colorMap[fillColor];
+                drawingEngine.DrawBrushAt(x, y, color, brush.Size);
+                // Agregar vecinos
+            pixels.Enqueue((x + 1, y));
+                pixels.Enqueue((x - 1, y));
+                pixels.Enqueue((x, y + 1));
+                pixels.Enqueue((x, y - 1));
+            }
+
+        
+}
     private void EvaluateGoTo(GoToNode gotoNode)
     {
-        // Evaluar la condición
+    
         bool condition = Convert.ToBoolean(EvaluateExpression(gotoNode.Condition));
-        
+        Debug.Log("Condición " + condition);
         if (condition)
         {
             // Buscar la etiqueta en el diccionario de labels
