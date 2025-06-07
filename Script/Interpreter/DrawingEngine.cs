@@ -91,7 +91,7 @@ public class DrawingEngine
             return;
         }
 
-        int x = radius+1;//No se por que, pero asi queda como en el del pdf
+        int x = radius;
         int y = 0;
         int err = 0;
 

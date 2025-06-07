@@ -7,7 +7,7 @@ using Unity.Mathematics;
 public class Evaluator
 {
     private CanvasManager canvasManager;
-    private Brush brush;
+    public Brush brush;
     private Dictionary<string, object> variables;
     private Dictionary<string, int> labels;
     private ProgramNode program;
@@ -103,13 +103,10 @@ public class Evaluator
     }
     private object ProcessValueForAssignment(object value)
     {
-        // Convertir doubles a int si provienen de operaciones matemáticas
         if (value is double d)
         {
             return Convert.ToInt32(d);
         }
-
-        // Mantener otros tipos (booleanos, strings, etc.)
         return value;
     }
 
@@ -304,9 +301,11 @@ public class Evaluator
         switch (func.Name)
         {
             case "GetActualX":
+            Debug.Log("GetActualX"+brush.CurrentX);
                 return brush.CurrentX;
 
             case "GetActualY":
+            Debug.Log("GetActualY"+brush.CurrentY);
                 return brush.CurrentY;
 
             case "GetCanvasSize":
