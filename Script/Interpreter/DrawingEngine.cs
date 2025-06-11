@@ -56,7 +56,6 @@ public class DrawingEngine
             return;
         }
 
-        // 2. Aplicar algoritmo de Bresenham
         int dx = Mathf.Abs(endX - startX);
         int dy = Mathf.Abs(endY - startY);
         int sx = startX < endX ? 1 : -1;
@@ -119,21 +118,19 @@ public class DrawingEngine
     public void DrawRectangle(int startX, int startY, int dirX, int dirY, int distance, int width, int height, string colorName, int brushSize)
     {
         Debug.Log("Evaluando DrawRectangle");
-        // Calcular centro del rectángulo
         int centerX = startX + dirX * distance;
         int centerY = startY + dirY * distance;
         
-        // Dibujar contorno
         DrawRectangle(centerX, centerY, width, height, colorName, brushSize);
     }
     public void DrawRectangle(int centerX, int centerY, int width, int height, string colorName, int brushSize)
     {
     
     // Calcular esquinas del rectángulo
-        int left = centerX - width / 2;
-        int right = centerX + width / 2;
-        int top = centerY - height / 2;
-        int bottom = centerY + height / 2;
+        int left = centerX - height / 2;
+        int right = centerX + height / 2;
+        int top = centerY - width / 2;
+        int bottom = centerY + width / 2;
         Debug.Log("Dibujando Rectángulo");
         DrawLine(left, top, right, top, colorName, brushSize);     // Línea superior
         DrawLine(right, top, right, bottom, colorName, brushSize); // Línea derecha

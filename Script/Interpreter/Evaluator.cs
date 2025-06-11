@@ -384,8 +384,8 @@ public class Evaluator
             drawingEngine.DrawLine(
                 brush.CurrentX,
                 brush.CurrentY,
-                endX,
                 endY,
+                endX,
                 brush.Color,
                 brush.Size
             );
@@ -404,8 +404,8 @@ public class Evaluator
             if (brush.Color == "Transparent")
             return;
             drawingEngine.DrawCircle(
-                brush.CurrentX,
-                brush.CurrentY,
+                endY,
+                endX,
                 radio,
                 brush.Color,
                 brush.Size
@@ -426,8 +426,8 @@ public class Evaluator
             drawingEngine.DrawRectangle(
                 brush.CurrentX,
                 brush.CurrentY,
-                dirX,
                 dirY,
+                dirX,
                 distance,
                 width,
                 height,
@@ -436,8 +436,8 @@ public class Evaluator
             );
             if (brush.Color == "Transparent")
             return;
-            brush.CurrentX += dirX * distance;
-            brush.CurrentY += dirY * distance;
+            brush.CurrentX=brush.CurrentX + dirX * distance;
+            brush.CurrentY=brush.CurrentY + dirY * distance;
             drawingEngine.UpdateTexture(canvasManager.canvasTexture);
 
         }
@@ -448,9 +448,6 @@ public class Evaluator
         {
             throw new Exception("No se puede usar Fill con color Transparent");
         }
-        Debug.Log($"Iniciando Fill en ({brush.CurrentX}, {brush.CurrentY})");
-        Debug.Log($"Color actual de la celda: {canvasManager.GetPixelColor(brush.CurrentX, brush.CurrentY)}");
-        Debug.Log($"Color de relleno de la brocha: {brush.Color}");
 
         string targetColor = canvasManager.GetPixelColor(brush.CurrentX, brush.CurrentY);
 
@@ -459,11 +456,8 @@ public class Evaluator
 
             return;
         }
-        Debug.Log("Iniciando relleno..., brush.Color: " + brush.Color);
-
         FloodFill(brush.CurrentX, brush.CurrentY, targetColor, brush.Color);
         drawingEngine.UpdateTexture(canvasManager.canvasTexture);
-            Debug.Log("Relleno completado");
 
     }
 
@@ -493,7 +487,6 @@ public class Evaluator
                 if (!string.Equals(currentColor, targetColor, StringComparison.OrdinalIgnoreCase))
                     continue;
 
-            Debug.Log("El fillcolor es"+ fillColor);
                 Color color = drawingEngine.colorMap[fillColor];
                 drawingEngine.DrawBrushAt(x, y, color, brush.Size);
                 // Agregar vecinos

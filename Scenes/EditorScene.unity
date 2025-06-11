@@ -1180,7 +1180,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 59.8
+  m_fontSize: 67.25
   m_fontSizeBase: 40
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -1247,7 +1247,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 244.0709, y: 113.9}
+  m_SizeDelta: {x: 274.4206, y: 81.4316}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &588889218
 MonoBehaviour:
@@ -2761,7 +2761,7 @@ GameObject:
   - component: {fileID: 1608018102}
   - component: {fileID: 1608018101}
   m_Layer: 5
-  m_Name: Panel
+  m_Name: SuggestionPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2784,8 +2784,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 313.42365, y: 0.0703125}
-  m_SizeDelta: {x: -646.8473, y: -51.849}
+  m_AnchoredPosition: {x: 279.7956, y: 78.92224}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1608018099
 MonoBehaviour:
@@ -2837,8 +2837,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3245ec927659c4140ac4f8d17403cc18, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_HorizontalFit: 0
-  m_VerticalFit: 0
+  m_HorizontalFit: 2
+  m_VerticalFit: 2
 --- !u!114 &1608018102
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2862,8 +2862,8 @@ MonoBehaviour:
   m_ChildForceExpandHeight: 1
   m_ChildControlWidth: 0
   m_ChildControlHeight: 0
-  m_ChildScaleWidth: 0
-  m_ChildScaleHeight: 0
+  m_ChildScaleWidth: 1
+  m_ChildScaleHeight: 1
   m_ReverseArrangement: 0
 --- !u!1 &1623203040
 GameObject:
