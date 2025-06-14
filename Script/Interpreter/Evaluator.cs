@@ -339,8 +339,6 @@ public class Evaluator
     private int EvaluateGetColorCount(string color, int x1, int y1, int x2, int y2)
     {
         int canvasSize = canvasManager.canvasSize;
-
-
         int minX = Math.Min(x1, x2);
         int maxX = Math.Max(x1, x2);
         int minY = Math.Min(y1, y2);
@@ -353,9 +351,9 @@ public class Evaluator
 
         int count = 0;
 
-        for (int y = minY; y <= maxY; y++)
+        for (int y = minY; y < maxY; y++)
         {
-            for (int x = minX; x <= maxX; x++)
+            for (int x = minX; x <maxX; x++)
             {
                 if (canvasManager.GetPixelColor(x, y) == color)
                 {
@@ -370,8 +368,8 @@ public class Evaluator
         
         if (drawCmd.Name == "DrawLine")
         {
-            int dirX = (int)EvaluateExpression(drawCmd.Parameters[0]);
-            int dirY = (int)EvaluateExpression(drawCmd.Parameters[1]);
+            int dirY = (int)EvaluateExpression(drawCmd.Parameters[0]);
+            int dirX = (int)EvaluateExpression(drawCmd.Parameters[1]);
             int distance = (int)EvaluateExpression(drawCmd.Parameters[2]);
             if(dirX>1 || dirX<-1 || dirY>1 || dirY<-1)
             {
@@ -379,65 +377,71 @@ public class Evaluator
             }
             int endX = brush.CurrentX + dirX * distance;
             int endY = brush.CurrentY + dirY * distance;
-        if (brush.Color == "Transparent")
-            return;
+        if (brush.Color != "Transparent"){
             drawingEngine.DrawLine(
                 brush.CurrentX,
                 brush.CurrentY,
-                endY,
                 endX,
+                endY,
                 brush.Color,
                 brush.Size
-            );
+            );}
 
-            brush.CurrentX = endX;
-            brush.CurrentY = endY;
+            brush.CurrentY = endX;
+            brush.CurrentX = endY;
             drawingEngine.UpdateTexture(canvasManager.canvasTexture);
         }
         if (drawCmd.Name == "DrawCircle")
         {
-            int dirX = (int)EvaluateExpression(drawCmd.Parameters[0]);
-            int dirY = (int)EvaluateExpression(drawCmd.Parameters[1]);
+            int dirY = (int)EvaluateExpression(drawCmd.Parameters[0]);
+            int dirX = (int)EvaluateExpression(drawCmd.Parameters[1]);
             int radio = (int)EvaluateExpression(drawCmd.Parameters[2]);
+            if(dirX>1 || dirX<-1 || dirY>1 || dirY<-1)
+            {
+                throw new Exception("Direcciones no válidas");
+            }
             int endX = brush.CurrentX + dirX * radio;
             int endY = brush.CurrentY + dirY * radio;
-            if (brush.Color == "Transparent")
-            return;
-            drawingEngine.DrawCircle(
-                endY,
-                endX,
-                radio,
-                brush.Color,
-                brush.Size
-            );
+            if (brush.Color != "Transparent"){
+                drawingEngine.DrawCircle(
+                    endX,
+                    endY,
+                    radio,
+                    brush.Color,
+                    brush.Size
+            );}
 
-            brush.CurrentX = endX;
-            brush.CurrentY = endY;
+            brush.CurrentY = endX;
+            brush.CurrentX = endY;
             drawingEngine.UpdateTexture(canvasManager.canvasTexture);
         }
         if (drawCmd.Name == "DrawRectangle")
         {
-            int dirX = (int)EvaluateExpression(drawCmd.Parameters[0]);
-            int dirY = (int)EvaluateExpression(drawCmd.Parameters[1]);
+            int dirY = (int)EvaluateExpression(drawCmd.Parameters[0]);
+            int dirX = (int)EvaluateExpression(drawCmd.Parameters[1]);
+            if(dirX>1 || dirX<-1 || dirY>1 || dirY<-1)
+            {
+                throw new Exception("Direcciones no válidas");
+            }
             int distance = (int)EvaluateExpression(drawCmd.Parameters[2]);
             int width = (int)EvaluateExpression(drawCmd.Parameters[3]);
             int height = (int)EvaluateExpression(drawCmd.Parameters[4]);
-
+            if(brush.Color != "Transparent")
+            {
             drawingEngine.DrawRectangle(
                 brush.CurrentX,
                 brush.CurrentY,
-                dirY,
                 dirX,
+                dirY,
                 distance,
                 width,
                 height,
                 brush.Color,
                 brush.Size
-            );
-            if (brush.Color == "Transparent")
-            return;
-            brush.CurrentX=brush.CurrentX + dirX * distance;
-            brush.CurrentY=brush.CurrentY + dirY * distance;
+            );}
+           
+            brush.CurrentX=brush.CurrentX + dirY * distance;
+            brush.CurrentY=brush.CurrentY + dirX * distance;
             drawingEngine.UpdateTexture(canvasManager.canvasTexture);
 
         }
@@ -470,30 +474,34 @@ public class Evaluator
             HashSet<(int x, int y)> visited = new HashSet<(int, int)>();
             int canvasSize = canvasManager.canvasSize;
 
-            while (pixels.Count > 0)
-            {
-                var (x, y) = pixels.Dequeue();
+        while (pixels.Count > 0)
+        {
+            var (x, y) = pixels.Dequeue();
 
-                // Saltar si ya fue visitado
-                if (visited.Contains((x, y))) continue;
-                visited.Add((x, y));
+            if (visited.Contains((x, y))) continue;
+            visited.Add((x, y));
 
-                // Verificar límites
-                if (x < 0 || x >= canvasSize || y < 0 || y >= canvasSize)
-                    continue;
+            // Verificar límites
+            if (x < 0 || x >= canvasSize || y < 0 || y >= canvasSize|| targetColor==brush.Color)
+                continue;
 
-                // Obtener y comparar color
-                string currentColor = canvasManager.GetPixelColor(x, y);
-                if (!string.Equals(currentColor, targetColor, StringComparison.OrdinalIgnoreCase))
-                    continue;
+            // Obtener y comparar color
+            string currentColor = canvasManager.GetPixelColor(x, y);
+            if (!string.Equals(currentColor, targetColor, StringComparison.OrdinalIgnoreCase))
+                continue;
 
-                Color color = drawingEngine.colorMap[fillColor];
-                drawingEngine.DrawBrushAt(x, y, color, brush.Size);
-                // Agregar vecinos
-            pixels.Enqueue((x + 1, y));
+            Color color = drawingEngine.colorMap[fillColor];
+            drawingEngine.DrawBrushAt(x, y, color, brush.Size);
+                pixels.Enqueue((x + 1, y));
                 pixels.Enqueue((x - 1, y));
                 pixels.Enqueue((x, y + 1));
                 pixels.Enqueue((x, y - 1));
+                /* pixels.Enqueue((x + 1, y - 1));
+                pixels.Enqueue((x - 1, y - 1));
+                pixels.Enqueue((x - 1, y + 1));
+                pixels.Enqueue((x + 1, y + 1)); */
+
+
             }
 
         
@@ -505,7 +513,6 @@ public class Evaluator
         Debug.Log("Condición " + condition);
         if (condition)
         {
-            // Buscar la etiqueta en el diccionario de labels
             if (labels.TryGetValue(gotoNode.Label, out int targetIndex))
             {
                 // Saltar a la instrucción con la etiqueta

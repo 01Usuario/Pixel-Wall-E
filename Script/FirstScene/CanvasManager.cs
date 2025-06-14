@@ -39,19 +39,21 @@ public class CanvasManager : MonoBehaviour
         InitializeCanvas(100);
         sizeInput.interactable = false;
         confirmButton.interactable = false;
-        confirmButton.onClick.AddListener(OnConfirmResize);
+       
     }
 
     private void InitializeCanvas(int newSize)
     {
         canvasSize = newSize;
         canvasTexture = new Texture2D(canvasSize, canvasSize, TextureFormat.RGBA32, false);
-        canvasTexture.filterMode = FilterMode.Point; // ¡Importante para píxeles nítidos!
+        canvasTexture.filterMode = FilterMode.Point;
         canvasDisplay.texture = canvasTexture;
         ClearCanvas();
+       
     }
+    
 
-    // Borra el lienzo (píxeles blancos)
+
     public void ClearCanvas()
     {
         Color[] pixels = new Color[canvasSize * canvasSize];
@@ -62,11 +64,12 @@ public class CanvasManager : MonoBehaviour
         canvasTexture.SetPixels(pixels);
         canvasTexture.Apply();
     }
+    
     public void OnResizeButtonClick()
     {
         sizeInput.interactable = true;
         confirmButton.interactable = true;
-        sizeInput.text = canvasSize.ToString(); // Mostrar tamaño actual
+        sizeInput.text = canvasSize.ToString();
     }
     public void OnConfirmResize()
     {
@@ -74,8 +77,8 @@ public class CanvasManager : MonoBehaviour
         {
             newSize = Mathf.Clamp(newSize, 1, 512);
             InitializeCanvas(newSize);
-            sizeInput.interactable = false; // Ocultar panel
-            confirmButton.interactable = false; // Ocultar botón
+            sizeInput.interactable = false;
+            confirmButton.interactable = false;
         }
         else
         {
@@ -84,6 +87,7 @@ public class CanvasManager : MonoBehaviour
     }
     public string GetPixelColor(int x, int y)
     {
+
         if (x < 0 || x >= canvasSize || y < 0 || y >= canvasSize)
             return "OutOfBounds";
 
@@ -96,15 +100,15 @@ public class CanvasManager : MonoBehaviour
                 return kvp.Value;
             }
         }
-        return "Unknown";
+        return "Color desconocido";
     }
     public Vector2 CanvasToWorldPosition(Vector2 canvasPosition)
     {
-        // Convertir posición en píxeles a posición en el mundo
         float pixelSize = 1f / canvasSize;
         return new Vector2(
-            (canvasPosition.x * pixelSize) - 0.5f + pixelSize/2f,
-            (canvasPosition.y * pixelSize) - 0.5f + pixelSize/2f
+            (canvasPosition.x * pixelSize) - 0.5f + pixelSize / 2f,
+            (canvasPosition.y * pixelSize) - 0.5f + pixelSize / 2f
         );
     }
-}
+   
+    }

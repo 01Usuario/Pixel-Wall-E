@@ -126,7 +126,6 @@ public class DrawingEngine
     public void DrawRectangle(int centerX, int centerY, int width, int height, string colorName, int brushSize)
     {
     
-    // Calcular esquinas del rectángulo
         int left = centerX - height / 2;
         int right = centerX + height / 2;
         int top = centerY - width / 2;

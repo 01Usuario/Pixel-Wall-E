@@ -20,21 +20,21 @@ public class Autocompleter : MonoBehaviour
 
     private Dictionary<string, string> keywordSignatures = new Dictionary<string, string>()
     {
-        {"Spawn", "Spawn( , )"},
-        {"Color", "Color(\" \")"},
+        {"Spawn", "Spawn()"},
+        {"Color", "Color(\"\")"},
         {"Size", "Size(number)"},
-        {"DrawLine", "DrawLine( , , )"},
-        {"DrawCircle", "DrawCircle( ,  ,  )"},
-        {"DrawRectangle", "DrawRectangle( ,  ,  ,  ,  )"},
+        {"DrawLine", "DrawLine(,,)"},
+        {"DrawCircle", "DrawCircle(,,)"},
+        {"DrawRectangle", "DrawRectangle(,,,,)"},
         {"Fill", "Fill()"},
-        {"GoTo", "GoTo[ ]( )"},
-        {"IsCanvasColor", "IsCanvasColor(\" \", , )"},
-        {"IsBrushSize", "IsBrushSize( )"},
+        {"GoTo", "GoTo[ ]()"},
+        {"IsCanvasColor", "IsCanvasColor(\" \",,)"},
+        {"IsBrushSize", "IsBrushSize(number)"},
         {"GetActualX", "GetActualX()"},
         {"GetActualY", "GetActualY()"},
         {"GetCanvasSize", "GetCanvasSize()"},
-        {"GetColorCount", "GetColorCount(\" \", , , , )"},
-        {"IsBrushColor", "IsBrushColor(\" \")"}
+        {"GetColorCount", "GetColorCount(\" \",,,,)"},
+        {"IsBrushColor", "IsBrushColor(\"\")"}
     };
 
     private List<GameObject> suggestionItems = new List<GameObject>();
@@ -120,17 +120,45 @@ public class Autocompleter : MonoBehaviour
             PositionPanelNearCaret();
         }
     }
-
-    private void PositionPanelNearCaret()
+private void PositionPanelNearCaret()
 {
-    Vector2 panelPos = codeInput.transform.position;
+    TMP_Text textComponent = codeInput.textComponent;
+    Vector2 localPosition;
     
-    panelPos.x = Mathf.Clamp(panelPos.x, 0, Screen.width - suggestionPanel.sizeDelta.x);
-    panelPos.y = Mathf.Clamp(panelPos.y, suggestionPanel.sizeDelta.y, Screen.height);
+    int caretPos = codeInput.caretPosition;
+    if (caretPos > textComponent.textInfo.characterCount - 1)
+        caretPos = textComponent.textInfo.characterCount - 1;
     
-    suggestionPanel.position = panelPos;
+    if (caretPos >= 0)
+    {
+        TMP_CharacterInfo charInfo = textComponent.textInfo.characterInfo[caretPos];
+        localPosition = new Vector2(charInfo.origin, charInfo.descender);
+    }
+    else
+    {
+        localPosition = Vector2.zero;
+    }
+    
+    Vector2 worldPosition = textComponent.transform.TransformPoint(localPosition);
+    Vector2 screenPosition = RectTransformUtility.WorldToScreenPoint(null, worldPosition);
+    
+    RectTransformUtility.ScreenPointToLocalPointInRectangle(
+        codeInput.GetComponent<RectTransform>(),
+        screenPosition,
+        null,
+        out Vector2 localPoint
+    );
+    
+    suggestionPanel.anchoredPosition = new Vector2(
+        localPoint.x,
+        localPoint.y - suggestionPanel.sizeDelta.y
+    );
+    
+    Vector2 clampedPosition = suggestionPanel.anchoredPosition;
+    clampedPosition.x = Mathf.Clamp(clampedPosition.x, 0, Screen.width - suggestionPanel.sizeDelta.x);
+    clampedPosition.y = Mathf.Clamp(clampedPosition.y, suggestionPanel.sizeDelta.y, Screen.height);
+    suggestionPanel.anchoredPosition = clampedPosition;
 }
-
     private string GetCurrentWord()
     {
         int caretPos = codeInput.caretPosition;
