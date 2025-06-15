@@ -2113,7 +2113,7 @@ GameObject:
   - component: {fileID: 1060232460}
   - component: {fileID: 1060232459}
   m_Layer: 0
-  m_Name: Autocompleter
+  m_Name: AutoCompleter
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

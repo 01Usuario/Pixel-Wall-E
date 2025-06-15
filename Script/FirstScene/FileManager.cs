@@ -80,6 +80,8 @@ public class FileManager : MonoBehaviour
             errorText.text = $"Error: {e.Message}";
             Debug.LogError($"Error: {e.Message}");
             errorText.color = Color.red;
+           // drawingEngine.UpdateTexture(canvasManager.canvasTexture);
+
         }
     }
 

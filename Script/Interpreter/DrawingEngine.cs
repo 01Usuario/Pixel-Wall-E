@@ -5,7 +5,6 @@ public class DrawingEngine
 {
     private int canvasSize;
     private Color[,] pixels;
-    private Color[] canvasPixels;
 
     public Dictionary<string, Color> colorMap = new()
     {
@@ -24,7 +23,6 @@ public class DrawingEngine
     {
         canvasSize = size;
         pixels = new Color[canvasSize, canvasSize];
-        canvasPixels = new Color[canvasSize * canvasSize];
         ClearCanvas();
     }
 
@@ -52,9 +50,10 @@ public class DrawingEngine
     {
         if (!colorMap.TryGetValue(colorName, out Color color))
         {
-            Debug.LogError($"Color desconocido: {colorName}");
-            return;
+            throw new System.Exception($"Color desconocido: {colorName}");
         }
+        if (brushSize <= 0)
+            throw new System.Exception($"Tamaño de pincel inválido: {brushSize}");
 
         int dx = Mathf.Abs(endX - startX);
         int dy = Mathf.Abs(endY - startY);
@@ -104,40 +103,38 @@ public class DrawingEngine
             DrawBrushAt(centerX - y, centerY - x, color, brushSize);
             DrawBrushAt(centerX + y, centerY - x, color, brushSize);
             DrawBrushAt(centerX + x, centerY - y, color, brushSize);
-            
+
 
             y++;
-            err += 1 + 2*y;
-            if (2*(err - x) + 1 > 0)
+            err += 1 + 2 * y;
+            if (2 * (err - x) + 1 > 0)
             {
                 x--;
-                err += 1 - 2*x;
+                err += 1 - 2 * x;
             }
         }
     }
     public void DrawRectangle(int startX, int startY, int dirX, int dirY, int distance, int width, int height, string colorName, int brushSize)
     {
-        Debug.Log("Evaluando DrawRectangle");
         int centerX = startX + dirX * distance;
         int centerY = startY + dirY * distance;
-        
+
         DrawRectangle(centerX, centerY, width, height, colorName, brushSize);
     }
     public void DrawRectangle(int centerX, int centerY, int width, int height, string colorName, int brushSize)
     {
-    
+
         int left = centerX - height / 2;
         int right = centerX + height / 2;
         int top = centerY - width / 2;
         int bottom = centerY + width / 2;
-        Debug.Log("Dibujando Rectángulo");
         DrawLine(left, top, right, top, colorName, brushSize);     // Línea superior
         DrawLine(right, top, right, bottom, colorName, brushSize); // Línea derecha
         DrawLine(right, bottom, left, bottom, colorName, brushSize); // Línea inferior
         DrawLine(left, bottom, left, top, colorName, brushSize);   // Línea izquierda
     }
 
-   public void DrawBrushAt(int centerX, int centerY, Color color, int brushSize)
+    public void DrawBrushAt(int centerX, int centerY, Color color, int brushSize)
     {
         int halfSize = brushSize / 2;
 
@@ -154,5 +151,14 @@ public class DrawingEngine
                 }
             }
         }
+    }
+    public Color[,] CloneCanvasState()
+    {
+        return (Color[,])pixels.Clone();
+    }
+
+    public void RestoreCanvasState(Color[,] state)
+    {
+        pixels = state;
     }
 }

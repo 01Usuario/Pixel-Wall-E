@@ -6,13 +6,16 @@ public class Lexer
    private readonly string source;
    private int position;
    private int line;
+   private SemanticContext Context;
    
    
-   public Lexer(string source){
-       this.source = source;
-       position = 0;
-       line = 1;
-   }
+   public Lexer(string source)
+    {
+        this.source = source;
+        this.Context = new SemanticContext();
+        position = 0;
+        line = 1;
+    }
      private readonly HashSet<string> KeywordsList = new HashSet<string>
     {
         "Spawn","Color","Size","GoTo","Fill"
@@ -85,10 +88,10 @@ public class Lexer
         }
         
         if (openCorchetes != 0)
-                throw new System.Exception($"Corchetes desbalanceados");
+                Context.AddError($"Corchetes desbalanceados");
             // Verificar si hay parentesis desbalanceados.
             if (openParentheses != 0)
-                throw new System.Exception($"Parentesis desbalanceados");
+                Context.AddError($"Parentesis desbalanceados");
 
         return tokens;
 

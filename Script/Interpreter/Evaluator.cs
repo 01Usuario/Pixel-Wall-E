@@ -14,6 +14,8 @@ public class Evaluator
     private int currentIndex;
     private SemanticContext context;
     private DrawingEngine drawingEngine;
+    private Color[,] lastValidState;
+
 
     public Evaluator(CanvasManager canvasManager, DrawingEngine drawingEngine)
     {
@@ -25,15 +27,27 @@ public class Evaluator
 
     }
 
-    public void Evaluate(ProgramNode program)
+   public void Evaluate(ProgramNode program)
     {
         this.program = program;
         PreprocessLabels();
+        lastValidState = drawingEngine.CloneCanvasState();
+        Color[,] preInstructionState = null;
 
         currentIndex = 0;
         while (currentIndex < program.Instructions.Count)
         {
-            EvaluateInstruction(program.Instructions[currentIndex]);
+            try
+            {
+                preInstructionState = drawingEngine.CloneCanvasState();
+                EvaluateInstruction(program.Instructions[currentIndex]);
+            }
+            catch (Exception ex)
+            {
+                drawingEngine.RestoreCanvasState(preInstructionState);
+                drawingEngine.UpdateTexture(canvasManager.canvasTexture);
+                throw new Exception($"Error en línea {currentIndex + 1}: {ex.Message}");
+            }
             currentIndex++;
         }
     }
@@ -48,7 +62,7 @@ public class Evaluator
             }
         }
     }
-
+#region Instructions
     private void EvaluateInstruction(ASTNode node)
     {
         switch (node)
@@ -67,10 +81,8 @@ public class Evaluator
                 break;
             case AssignNode assign:
                 EvaluateAssignment(assign);
-                Debug.Log($"Asignación exitosa: {assign.Variable} = {assign.Expression}");
                 break;
             case FunctionNode func:
-                Debug.Log("Evaluando Funcion " + func.Name);
                 EvaluateFunction(func);
                 break;
             case DrawCommandNode drawCmd:
@@ -94,7 +106,6 @@ public class Evaluator
 
             variables[assign.Variable] = value;
 
-            Debug.Log($"Asignación exitosa: {assign.Variable} = {value}");
         }
         catch (Exception ex)
         {
@@ -242,7 +253,6 @@ public class Evaluator
         throw new Exception($"Tipos incompatibles para comparación: {left?.GetType().Name} y {right?.GetType().Name}");
     }
 
-    // Métodos auxiliares
     private bool ConvertToBoolean(object value)
     {
         if (value is bool b) return b;
@@ -277,6 +287,8 @@ public class Evaluator
 
         return false;
     }
+    #endregion
+    #region Functions
     private object EvaluateFunction(FunctionNode func)
     {
         List<object> evaluatedParams = new List<object>();
@@ -291,7 +303,6 @@ public class Evaluator
             case "IsBrushColor":
             case "IsCanvasColor":
             case "GetColorCount":
-                // Validar que el color sea válido
                 if (parameters[0] is string color && !context.validColors.Contains(color))
                 {
                     throw new Exception($"Color inválido: '{color}'");
@@ -301,11 +312,9 @@ public class Evaluator
         switch (func.Name)
         {
             case "GetActualX":
-            Debug.Log("GetActualX"+brush.CurrentX);
                 return brush.CurrentX;
 
             case "GetActualY":
-            Debug.Log("GetActualY"+brush.CurrentY);
                 return brush.CurrentY;
 
             case "GetCanvasSize":
@@ -327,7 +336,6 @@ public class Evaluator
             case "GetColorCount":
                 int count = EvaluateGetColorCount((string)parameters[0], (int)parameters[1],
                                             (int)parameters[2], (int)parameters[3], (int)parameters[4]);
-                Debug.Log("Color count " + count);
                 return count;
 
 
@@ -363,32 +371,37 @@ public class Evaluator
         }
         return count;
     }
+    #endregion
+
+    #region DrawCommands
     private void EvaluateDrawCommand(DrawCommandNode drawCmd)
     {
-        
+
         if (drawCmd.Name == "DrawLine")
         {
             int dirY = (int)EvaluateExpression(drawCmd.Parameters[0]);
             int dirX = (int)EvaluateExpression(drawCmd.Parameters[1]);
             int distance = (int)EvaluateExpression(drawCmd.Parameters[2]);
-            if(dirX>1 || dirX<-1 || dirY>1 || dirY<-1)
+            if (dirX > 1 || dirX < -1 || dirY > 1 || dirY < -1)
             {
                 throw new Exception("Direcciones no válidas");
             }
             int endX = brush.CurrentX + dirX * distance;
             int endY = brush.CurrentY + dirY * distance;
-        if (brush.Color != "Transparent"){
-            drawingEngine.DrawLine(
-                brush.CurrentX,
-                brush.CurrentY,
-                endX,
-                endY,
-                brush.Color,
-                brush.Size
-            );}
+            if (brush.Color != "Transparent")
+            {
+                drawingEngine.DrawLine(
+                    brush.CurrentX,
+                    brush.CurrentY,
+                    endX,
+                    endY,
+                    brush.Color,
+                    brush.Size
+                );
+            }
 
-            brush.CurrentY = endX;
-            brush.CurrentX = endY;
+            brush.CurrentX = endX;
+            brush.CurrentY = endY;
             drawingEngine.UpdateTexture(canvasManager.canvasTexture);
         }
         if (drawCmd.Name == "DrawCircle")
@@ -396,52 +409,55 @@ public class Evaluator
             int dirY = (int)EvaluateExpression(drawCmd.Parameters[0]);
             int dirX = (int)EvaluateExpression(drawCmd.Parameters[1]);
             int radio = (int)EvaluateExpression(drawCmd.Parameters[2]);
-            if(dirX>1 || dirX<-1 || dirY>1 || dirY<-1)
+            if (dirX > 1 || dirX < -1 || dirY > 1 || dirY < -1)
             {
                 throw new Exception("Direcciones no válidas");
             }
             int endX = brush.CurrentX + dirX * radio;
             int endY = brush.CurrentY + dirY * radio;
-            if (brush.Color != "Transparent"){
+            if (brush.Color != "Transparent")
+            {
                 drawingEngine.DrawCircle(
                     endX,
                     endY,
                     radio,
                     brush.Color,
                     brush.Size
-            );}
+            );
+            }
 
-            brush.CurrentY = endX;
-            brush.CurrentX = endY;
+            brush.CurrentX = endX;
+            brush.CurrentY = endY;
             drawingEngine.UpdateTexture(canvasManager.canvasTexture);
         }
         if (drawCmd.Name == "DrawRectangle")
         {
             int dirY = (int)EvaluateExpression(drawCmd.Parameters[0]);
             int dirX = (int)EvaluateExpression(drawCmd.Parameters[1]);
-            if(dirX>1 || dirX<-1 || dirY>1 || dirY<-1)
+            if (dirX > 1 || dirX < -1 || dirY > 1 || dirY < -1)
             {
                 throw new Exception("Direcciones no válidas");
             }
             int distance = (int)EvaluateExpression(drawCmd.Parameters[2]);
             int width = (int)EvaluateExpression(drawCmd.Parameters[3]);
             int height = (int)EvaluateExpression(drawCmd.Parameters[4]);
-            if(brush.Color != "Transparent")
+            if (brush.Color != "Transparent")
             {
-            drawingEngine.DrawRectangle(
-                brush.CurrentX,
-                brush.CurrentY,
-                dirX,
-                dirY,
-                distance,
-                width,
-                height,
-                brush.Color,
-                brush.Size
-            );}
-           
-            brush.CurrentX=brush.CurrentX + dirY * distance;
-            brush.CurrentY=brush.CurrentY + dirX * distance;
+                drawingEngine.DrawRectangle(
+                    brush.CurrentX,
+                    brush.CurrentY,
+                    dirX,
+                    dirY,
+                    distance,
+                    width,
+                    height,
+                    brush.Color,
+                    brush.Size
+                );
+            }
+
+            brush.CurrentX = brush.CurrentX + dirX * distance;
+            brush.CurrentY = brush.CurrentY + dirY * distance;
             drawingEngine.UpdateTexture(canvasManager.canvasTexture);
 
         }
@@ -467,12 +483,12 @@ public class Evaluator
 
     private void FloodFill(int startX, int startY, string targetColor, string fillColor)
     {
-        
-            Queue<(int x, int y)> pixels = new Queue<(int, int)>();
-            pixels.Enqueue((startX, startY));
 
-            HashSet<(int x, int y)> visited = new HashSet<(int, int)>();
-            int canvasSize = canvasManager.canvasSize;
+        Queue<(int x, int y)> pixels = new Queue<(int, int)>();
+        pixels.Enqueue((startX, startY));
+
+        HashSet<(int x, int y)> visited = new HashSet<(int, int)>();
+        int canvasSize = canvasManager.canvasSize;
 
         while (pixels.Count > 0)
         {
@@ -482,7 +498,7 @@ public class Evaluator
             visited.Add((x, y));
 
             // Verificar límites
-            if (x < 0 || x >= canvasSize || y < 0 || y >= canvasSize|| targetColor==brush.Color)
+            if (x < 0 || x >= canvasSize || y < 0 || y >= canvasSize || targetColor == brush.Color)
                 continue;
 
             // Obtener y comparar color
@@ -492,25 +508,25 @@ public class Evaluator
 
             Color color = drawingEngine.colorMap[fillColor];
             drawingEngine.DrawBrushAt(x, y, color, brush.Size);
-                pixels.Enqueue((x + 1, y));
-                pixels.Enqueue((x - 1, y));
-                pixels.Enqueue((x, y + 1));
-                pixels.Enqueue((x, y - 1));
-                /* pixels.Enqueue((x + 1, y - 1));
-                pixels.Enqueue((x - 1, y - 1));
-                pixels.Enqueue((x - 1, y + 1));
-                pixels.Enqueue((x + 1, y + 1)); */
+            pixels.Enqueue((x + 1, y));
+            pixels.Enqueue((x - 1, y));
+            pixels.Enqueue((x, y + 1));
+            pixels.Enqueue((x, y - 1));
+            /* pixels.Enqueue((x + 1, y - 1));
+            pixels.Enqueue((x - 1, y - 1));
+            pixels.Enqueue((x - 1, y + 1));
+            pixels.Enqueue((x + 1, y + 1)); */
 
 
-            }
+        }
 
-        
-}
+
+    }
+#endregion
     private void EvaluateGoTo(GoToNode gotoNode)
     {
     
         bool condition = Convert.ToBoolean(EvaluateExpression(gotoNode.Condition));
-        Debug.Log("Condición " + condition);
         if (condition)
         {
             if (labels.TryGetValue(gotoNode.Label, out int targetIndex))

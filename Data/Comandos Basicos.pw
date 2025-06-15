@@ -1,4 +1,0 @@
-Spawn(0, 0)
-Color("Blue")
-Size(5)
-DrawLine(1, 0, 10) 
